@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ZetaCoach</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+  <div id="popup-shell">
+
+    <!-- Header -->
+    <div id="popup-header">
+      <span id="popup-logo">⚡ ZETACOACH</span>
+      <span id="popup-session-count"></span>
+    </div>
+
+    <!-- Loading skeleton (default visible) -->
+    <div id="popup-loading">
+      <div class="skeleton-row wide"></div>
+      <div class="skeleton-row mid"></div>
+      <div class="skeleton-row narrow"></div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="popup-empty" style="display:none;">
+      <div class="popup-empty-icon">⚡</div>
+      <div class="popup-empty-text">No sessions yet</div>
+      <div class="popup-empty-sub">Play a game on zetamac.com to see your stats here.</div>
+    </div>
+
+    <!-- Main stats content -->
+    <div id="popup-content" style="display:none;">
+
+      <div class="popup-tier-card" id="popup-tier-card" style="display:none;">
+        <div class="popup-tier-icon" id="popup-tier-icon"></div>
+        <div class="popup-tier-info">
+          <div class="popup-tier-name" id="popup-tier-name">—</div>
+          <div class="popup-tier-pct" id="popup-tier-pct"></div>
+        </div>
+      </div>
+
+      <div class="popup-section-label">Last Session</div>
+      <div class="popup-kpi-row">
+        <div class="popup-kpi" id="pkpi-score">
+          <div class="popup-kpi-val">—</div>
+          <div class="popup-kpi-lbl">Score</div>
+        </div>
+        <div class="popup-kpi" id="pkpi-latency">
+          <div class="popup-kpi-val">—</div>
+          <div class="popup-kpi-lbl">Avg Latency</div>
+        </div>
+        <div class="popup-kpi" id="pkpi-errors">
+          <div class="popup-kpi-val">—</div>
+          <div class="popup-kpi-lbl">Error Rate</div>
+        </div>
+      </div>
+
+      <div class="popup-section-label">All-Time Records</div>
+      <div class="popup-kpi-row">
+        <div class="popup-kpi" id="pkpi-best-score">
+          <div class="popup-kpi-val">—</div>
+          <div class="popup-kpi-lbl">Best Score</div>
+        </div>
+        <div class="popup-kpi" id="pkpi-best-lat">
+          <div class="popup-kpi-val">—</div>
+          <div class="popup-kpi-lbl">Best Latency</div>
+        </div>
+        <div class="popup-kpi" id="pkpi-streak">
+          <div class="popup-kpi-val">—</div>
+          <div class="popup-kpi-lbl">Clean Streak</div>
+        </div>
+      </div>
+
+      <div class="popup-section-label">Top Weak Points</div>
+      <div id="popup-weak-points"></div>
+
+    </div><!-- /#popup-content -->
+
+    <!-- Footer CTA -->
+    <div id="popup-footer">
+      <button id="btn-open-dashboard" class="popup-btn-primary">
+        Show Full Stats →
+      </button>
+    </div>
+
+  </div><!-- /#popup-shell -->
+
+  <script src="analytics.js"></script>
+  <script src="tiers.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

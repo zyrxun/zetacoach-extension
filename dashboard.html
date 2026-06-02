@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZetaCoach Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body class="app-loading">
+
+  <!-- Initial load overlay — removed once data is hydrated -->
+  <div id="app-loading-overlay">
+    <div class="app-loading-spinner"></div>
+    <div class="app-loading-label">Loading session data…</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ SHELL ══ -->
+  <div id="app">
+
+    <!-- NAV SIDEBAR -->
+    <nav id="nav">
+      <div id="nav-logo">⚡</div>
+      <div id="nav-tabs">
+        <button class="nav-tab active" data-section="analytics" title="Analytics">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+            <rect x="2" y="10" width="4" height="8" rx="1"/><rect x="8" y="6" width="4" height="12" rx="1"/><rect x="14" y="2" width="4" height="16" rx="1"/>
+          </svg>
+          <span class="nav-label">Analytics</span>
+        </button>
+        <button class="nav-tab" data-section="drills" title="Drills">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+            <circle cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="3"/><line x1="10" y1="3" x2="10" y2="1"/><line x1="10" y1="17" x2="10" y2="19"/><line x1="3" y1="10" x2="1" y2="10"/><line x1="17" y1="10" x2="19" y2="10"/>
+          </svg>
+          <span class="nav-label">Drills</span>
+        </button>
+        <button class="nav-tab" data-section="history" title="History">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+            <polyline points="2,14 7,9 11,13 18,5"/><line x1="2" y1="17" x2="18" y2="17"/>
+          </svg>
+          <span class="nav-label">History</span>
+        </button>
+        <button class="nav-tab" data-section="coach" title="Coach">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+            <polygon points="10,2 12.5,7.5 18.5,8.2 14.2,12.3 15.5,18.2 10,15.3 4.5,18.2 5.8,12.3 1.5,8.2 7.5,7.5"/>
+          </svg>
+          <span class="nav-label">Coach</span>
+        </button>
+        <button class="nav-tab" data-section="settings" title="Settings">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+            <circle cx="10" cy="10" r="3"/><path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.5 3.5l1.4 1.4M15.1 15.1l1.4 1.4M3.5 16.5l1.4-1.4M15.1 4.9l1.4-1.4"/>
+          </svg>
+          <span class="nav-label">Settings</span>
+        </button>
+      </div>
+      <div id="nav-bottom">
+        <span id="nav-session-count">—</span>
+        <span class="nav-bottom-label">sessions</span>
+      </div>
+    </nav>
+
+    <!-- ══════════════════════════ ANALYTICS SECTION ══════════════ -->
+    <section id="section-analytics" class="section active">
+
+      <!-- Toolbar -->
+      <div class="section-toolbar">
+        <div class="toolbar-left">
+          <span class="section-heading">Performance Overview</span>
+          <select id="session-range-select">
+            <option value="1">Last session</option>
+            <option value="5">Last 5 sessions</option>
+            <option value="20" selected>Last 20 sessions</option>
+            <option value="50">Last 50 sessions</option>
+            <option value="all">All time</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tier card -->
+      <div id="tier-card">
+        <div id="tier-icon-wrap">
+          <span id="tier-icon">🔘</span>
+        </div>
+        <div id="tier-info">
+          <div id="tier-name">Unranked</div>
+          <div id="tier-pct"></div>
+          <div id="tier-progress-wrap">
+            <div id="tier-progress-bar"></div>
+          </div>
+          <div id="tier-progress-label"></div>
+        </div>
+      </div>
+
+      <!-- Summary KPI strip -->
+      <div id="kpi-strip">
+        <div class="kpi" id="kpi-avg-score">
+          <div class="kpi-value">—</div>
+          <div class="kpi-label">Avg Score</div>
+        </div>
+        <div class="kpi" id="kpi-avg-latency">
+          <div class="kpi-value">—</div>
+          <div class="kpi-label">Avg Latency</div>
+        </div>
+        <div class="kpi" id="kpi-p95">
+          <div class="kpi-value">—</div>
+          <div class="kpi-label">P95 Latency</div>
+        </div>
+        <div class="kpi" id="kpi-error-rate">
+          <div class="kpi-value">—</div>
+          <div class="kpi-label">Error Rate</div>
+        </div>
+        <div class="kpi" id="kpi-dr-pct">
+          <div class="kpi-value">—</div>
+          <div class="kpi-label">Direct Retrieval %</div>
+        </div>
+        <div class="kpi" id="kpi-fatigue">
+          <div class="kpi-value">—</div>
+          <div class="kpi-label">Fatigue Δ</div>
+        </div>
+      </div>
+
+      <!-- Two-column: heatmap + prescriptions -->
+      <div class="analytics-grid">
+
+        <!-- Heatmap -->
+        <div class="card" id="card-heatmap">
+          <div class="card-header">
+            <span class="card-title">Fact Family Heatmap</span>
+            <div class="heatmap-controls">
+              <button class="hmap-op-btn active" data-op="mul">× mul</button>
+              <button class="hmap-op-btn"        data-op="div">÷ div</button>
+              <button class="hmap-op-btn"        data-op="add">+ add</button>
+              <button class="hmap-op-btn"        data-op="sub">− sub</button>
+            </div>
+          </div>
+          <div class="heatmap-legend">
+            <span class="legend-dr">■ Direct Retrieval (&lt;400ms)</span>
+            <span class="legend-proc">■ Procedural (400–1200ms)</span>
+            <span class="legend-fric">■ Systemic Friction (&gt;1200ms)</span>
+            <span class="legend-none">■ No data</span>
+          </div>
+          <div id="heatmap-container">
+            <div id="heatmap-empty" class="empty-state">Play a session on ZetaMac to populate the heatmap.</div>
+            <canvas id="heatmap-canvas" width="520" height="520" style="display:none;"></canvas>
+          </div>
+          <div id="heatmap-tooltip" class="heatmap-tooltip" style="display:none;"></div>
+        </div>
+
+        <!-- Prescriptions -->
+        <div class="card" id="card-prescriptions">
+          <div class="card-header">
+            <span class="card-title">⚡ Prescriptions</span>
+            <span class="card-subtitle" id="rx-session-label">—</span>
+          </div>
+          <div id="prescriptions-list">
+            <div class="empty-state">No session data loaded.</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Tag latency breakdown table -->
+      <div class="card" id="card-tag-breakdown">
+        <div class="card-header">
+          <span class="card-title">Structural Tag Latency Breakdown</span>
+        </div>
+        <table id="tag-table">
+          <thead>
+            <tr>
+              <th>Tag</th>
+              <th>Avg Latency</th>
+              <th>Zone</th>
+              <th>Problems</th>
+              <th>Trend</th>
+            </tr>
+          </thead>
+          <tbody id="tag-table-body">
+            <tr><td colspan="5" class="empty-cell">No data</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Session history list -->
+      <div class="card" id="card-session-history">
+        <div class="card-header">
+          <span class="card-title">Session History</span>
+        </div>
+        <div id="session-history-list">
+          <div class="empty-state">No sessions recorded yet.</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ══════════════════════════ DRILLS SECTION ═══════════════ -->
+    <section id="section-drills" class="section">
+
+      <!-- Left: drill picker -->
+      <div id="drill-sidebar">
+        <div class="drill-mode-label">Select Mode</div>
+
+        <button class="drill-mode-btn active" data-mode="adaptive">
+          <span class="drill-mode-icon">🎯</span>
+          <span class="drill-mode-name">Adaptive Weak-Point</span>
+          <span class="drill-mode-desc">Auto-focuses your 5 slowest tags at 70% frequency</span>
+        </button>
+
+        <button class="drill-mode-btn" data-mode="metronome">
+          <span class="drill-mode-icon">🥁</span>
+          <span class="drill-mode-name">Anti-Hesitation Metronome</span>
+          <span class="drill-mode-desc">Forcibly skips problems beyond your threshold to train rhythm recovery</span>
+        </button>
+
+        <button class="drill-mode-btn" data-mode="stamina">
+          <span class="drill-mode-icon">🔥</span>
+          <span class="drill-mode-name">Stamina Endurance</span>
+          <span class="drill-mode-desc">Extended fixed-length sprints to eliminate late-stage deceleration</span>
+        </button>
+
+        <button class="drill-mode-btn" data-mode="free">
+          <span class="drill-mode-icon">⚙️</span>
+          <span class="drill-mode-name">Free Practice</span>
+          <span class="drill-mode-desc">Open drill with custom operation and range settings</span>
+        </button>
+
+        <!-- Config panel -->
+        <div id="drill-config">
+          <div class="config-section-label">Duration</div>
+          <div class="config-row">
+            <input type="range" id="cfg-duration" min="30" max="300" step="30" value="90" />
+            <span id="cfg-duration-val">90s</span>
+          </div>
+
+          <div id="cfg-metronome-panel" class="config-panel" style="display:none;">
+            <div class="config-section-label">Skip Threshold (ms)</div>
+            <div class="config-row">
+              <input type="range" id="cfg-threshold" min="400" max="2000" step="100" value="800" />
+              <span id="cfg-threshold-val">800ms</span>
+            </div>
+          </div>
+
+          <div id="cfg-free-panel" class="config-panel" style="display:none;">
+            <div class="config-section-label">Operations</div>
+            <div class="config-row config-checkboxes">
+              <label><input type="checkbox" data-op="add" checked /> +</label>
+              <label><input type="checkbox" data-op="sub" checked /> −</label>
+              <label><input type="checkbox" data-op="mul" checked /> ×</label>
+              <label><input type="checkbox" data-op="div" checked /> ÷</label>
+            </div>
+            <div class="config-section-label">Number Range</div>
+            <div class="config-row">
+              <input type="number" id="cfg-range-min" value="2"  min="1" max="99" />
+              <span>–</span>
+              <input type="number" id="cfg-range-max" value="25" min="2" max="999" />
+            </div>
+          </div>
+
+          <div id="cfg-stamina-panel" class="config-panel" style="display:none;">
+            <div class="config-section-label">Sprint Length</div>
+            <div class="config-row">
+              <button class="sprint-btn active" data-dur="180">180s</button>
+              <button class="sprint-btn"        data-dur="300">300s</button>
+              <button class="sprint-btn"        data-dur="600">600s</button>
+            </div>
+          </div>
+
+          <button id="btn-start-drill" class="btn-primary">Start Drill</button>
+        </div>
+      </div>
+
+      <!-- Center: drill arena -->
+      <div id="drill-arena">
+
+        <!-- Idle state -->
+        <div id="arena-idle" class="arena-state">
+          <div class="arena-idle-icon">⚡</div>
+          <div class="arena-idle-title">Ready to Train</div>
+          <div class="arena-idle-sub">Select a mode and press Start Drill</div>
+        </div>
+
+        <!-- Active state -->
+        <div id="arena-active" class="arena-state" style="display:none;">
+
+          <div id="arena-header">
+            <div id="arena-mode-badge">ADAPTIVE</div>
+            <div id="arena-timer-display">1:30</div>
+            <div id="arena-score-display">0</div>
+          </div>
+
+          <!-- Progress bar (metronome threshold indicator) -->
+          <div id="arena-progress-wrap" style="display:none;">
+            <div id="arena-progress-bar"></div>
+          </div>
+
+          <!-- The problem -->
+          <div id="arena-problem-display">—</div>
+
+          <!-- Tags badge row -->
+          <div id="arena-tag-badges"></div>
+
+          <!-- Answer input -->
+          <input
+            type="text"
+            id="arena-input"
+            inputmode="numeric"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="Answer…"
+            aria-label="Enter answer"
+          />
+
+          <!-- Feedback flash -->
+          <div id="arena-feedback"></div>
+
+          <!-- Live stats strip -->
+          <div id="arena-live-stats">
+            <div class="arena-stat"><span class="arena-stat-val" id="lst-correct">0</span><span class="arena-stat-lbl">Correct</span></div>
+            <div class="arena-stat"><span class="arena-stat-val" id="lst-errors">0</span><span class="arena-stat-lbl">Errors</span></div>
+            <div class="arena-stat"><span class="arena-stat-val" id="lst-skipped">0</span><span class="arena-stat-lbl">Skipped</span></div>
+            <div class="arena-stat"><span class="arena-stat-val" id="lst-avg-lat">—</span><span class="arena-stat-lbl">Avg Latency</span></div>
+            <div class="arena-stat"><span class="arena-stat-val" id="lst-streak">0</span><span class="arena-stat-lbl">Streak</span></div>
+          </div>
+
+          <button id="btn-stop-drill" class="btn-ghost-sm">Stop</button>
+        </div>
+
+        <!-- Results state -->
+        <div id="arena-results" class="arena-state" style="display:none;">
+          <div class="results-header">Drill Complete</div>
+          <div id="results-kpis" class="results-kpi-row"></div>
+          <div id="results-rx" class="results-rx-list"></div>
+          <div class="results-actions">
+            <button id="btn-results-again"     class="btn-primary">Drill Again</button>
+            <button id="btn-results-analytics" class="btn-ghost">View Analytics</button>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════ SETTINGS SECTION ════════════════ -->
+    <section id="section-settings" class="section">
+      <div class="settings-wrap">
+        <div class="settings-group">
+          <div class="settings-group-title">Appearance</div>
+          <div class="setting-row" style="flex-direction:column; align-items:flex-start; gap:12px;">
+            <div class="setting-label">Colour Theme</div>
+            <div class="theme-picker" id="theme-picker">
+              <div class="theme-swatch active" data-theme="orchid">
+                <div class="theme-swatch-dots">
+                  <div class="theme-swatch-dot" style="background:#e092c7"></div>
+                  <div class="theme-swatch-dot" style="background:#8a8bcf"></div>
+                  <div class="theme-swatch-dot" style="background:#719c81"></div>
+                </div>
+                <span class="theme-swatch-label">Orchid</span>
+              </div>
+              <div class="theme-swatch" data-theme="rose">
+                <div class="theme-swatch-dots">
+                  <div class="theme-swatch-dot" style="background:#f07070"></div>
+                  <div class="theme-swatch-dot" style="background:#c88040"></div>
+                  <div class="theme-swatch-dot" style="background:#6eab7a"></div>
+                </div>
+                <span class="theme-swatch-label">Rose</span>
+              </div>
+              <div class="theme-swatch" data-theme="ocean">
+                <div class="theme-swatch-dots">
+                  <div class="theme-swatch-dot" style="background:#5bc4e0"></div>
+                  <div class="theme-swatch-dot" style="background:#5ea4d8"></div>
+                  <div class="theme-swatch-dot" style="background:#4ab89a"></div>
+                </div>
+                <span class="theme-swatch-label">Ocean</span>
+              </div>
+              <div class="theme-swatch" data-theme="forest">
+                <div class="theme-swatch-dots">
+                  <div class="theme-swatch-dot" style="background:#7ec87e"></div>
+                  <div class="theme-swatch-dot" style="background:#b4d070"></div>
+                  <div class="theme-swatch-dot" style="background:#60a878"></div>
+                </div>
+                <span class="theme-swatch-label">Forest</span>
+              </div>
+              <div class="theme-swatch" data-theme="midnight">
+                <div class="theme-swatch-dots">
+                  <div class="theme-swatch-dot" style="background:#9b85d8"></div>
+                  <div class="theme-swatch-dot" style="background:#8080c0"></div>
+                  <div class="theme-swatch-dot" style="background:#6a9090"></div>
+                </div>
+                <span class="theme-swatch-label">Midnight</span>
+              </div>
+              <div class="theme-swatch" data-theme="mocha">
+                <div class="theme-swatch-dots">
+                  <div class="theme-swatch-dot" style="background:#d4956a"></div>
+                  <div class="theme-swatch-dot" style="background:#b88c65"></div>
+                  <div class="theme-swatch-dot" style="background:#88a870"></div>
+                </div>
+                <span class="theme-swatch-label">Mocha</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="settings-group-title">Drill Defaults</div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              Default Drill Duration
+              <div class="setting-sub">Seconds used when starting a drill</div>
+            </div>
+            <input type="number" id="set-drill-duration" class="setting-input" value="90" min="30" max="600" />
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              Metronome Skip Threshold
+              <div class="setting-sub">ms before a problem is force-skipped in metronome mode</div>
+            </div>
+            <input type="number" id="set-metronome-threshold" class="setting-input" value="800" min="300" max="3000" />
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              Stamina Default Duration
+              <div class="setting-sub">Default sprint length for Stamina mode (seconds)</div>
+            </div>
+            <input type="number" id="set-stamina-duration" class="setting-input" value="180" min="60" max="600" />
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="settings-group-title">Adaptive Weak-Point Engine</div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              Weak-Point Appearance Frequency
+              <div class="setting-sub">Fraction of drill problems forced from weak tags (0.0–1.0)</div>
+            </div>
+            <input type="number" id="set-wp-frequency" class="setting-input" value="0.70" min="0.1" max="1.0" step="0.05" />
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              Focus Tag Pool Size
+              <div class="setting-sub">Top N slowest tags to include in adaptive focus</div>
+            </div>
+            <input type="number" id="set-wp-pool" class="setting-input" value="5" min="1" max="10" />
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              Graduate Threshold (ms)
+              <div class="setting-sub">A tag exits the focus pool once its average drops below this value</div>
+            </div>
+            <input type="number" id="set-wp-graduate" class="setting-input" value="600" min="200" max="1200" />
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="settings-group-title">Data</div>
+          <div class="setting-row">
+            <div class="setting-label">
+              Session History
+              <div class="setting-sub" id="storage-info">Calculating…</div>
+            </div>
+            <button id="btn-settings-clear" class="btn-danger-ghost">Erase All Data</button>
+          </div>
+          <div id="clear-confirm-row" style="display:none;" class="clear-confirm-row">
+            <span class="clear-confirm-msg">
+              ⚠ This permanently deletes every session, problem, and tier record.
+              <strong>This cannot be undone.</strong> Your best score and rank will reset.
+            </span>
+            <div class="clear-confirm-actions">
+              <button id="btn-clear-confirm" class="btn-danger">Yes, erase everything</button>
+              <button id="btn-clear-cancel"  class="btn-ghost">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button id="btn-save-settings" class="btn-primary">Save Settings</button>
+          <span id="settings-saved-indicator" style="display:none;" class="saved-indicator">✓ Saved</span>
+        </div>
+
+        <div class="settings-privacy">
+          🔒 All your data is stored locally in your browser. Nothing is sent to any server — ZetaCoach has no backend.
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════ HISTORY SECTION ═══════════════ -->
+    <section id="section-history" class="section">
+
+      <!-- Toolbar -->
+      <div class="section-toolbar">
+        <div class="toolbar-left">
+          <span class="section-heading">Historical Performance Review</span>
+          <select id="history-range-select">
+            <option value="10">Last 10 sessions</option>
+            <option value="20" selected>Last 20 sessions</option>
+            <option value="50">Last 50 sessions</option>
+            <option value="all">All time</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Personal Records strip -->
+      <div id="history-records-strip">
+        <div class="kpi" id="hrec-best-score">
+          <div class="kpi-value">—</div>
+          <div class="kpi-label">Best Score</div>
+        </div>
+        <div class="kpi" id="hrec-best-latency">
+          <div class="kpi-value">—</div>
+          <div class="kpi-label">Best Avg Latency</div>
+        </div>
+        <div class="kpi" id="hrec-dr-streak">
+          <div class="kpi-value">—</div>
+          <div class="kpi-label">Longest DR Streak</div>
+        </div>
+        <div class="kpi" id="hrec-clean-streak">
+          <div class="kpi-value">—</div>
+          <div class="kpi-label">Clean Session Streak</div>
+        </div>
+      </div>
+
+      <!-- Trend chart card -->
+      <div class="card" id="card-trend-chart">
+        <div class="card-header">
+          <span class="card-title">Score &amp; Latency Trend</span>
+          <div class="history-chart-legend">
+            <span class="legend-score">■ Score</span>
+            <span class="legend-latency">■ Avg Latency</span>
+          </div>
+        </div>
+        <div id="trend-chart-container">
+          <div id="trend-chart-empty" class="empty-state">Play at least 2 sessions to see the trend.</div>
+          <canvas id="trend-chart-canvas" style="display:none;"></canvas>
+        </div>
+      </div>
+
+      <!-- Tag sparklines card -->
+      <div class="card" id="card-tag-sparklines">
+        <div class="card-header">
+          <span class="card-title">Tag Progression — Last 10 Sessions</span>
+          <span class="card-subtitle">Min 5 samples/session across 3+ sessions</span>
+        </div>
+        <div id="tag-sparklines-container">
+          <div id="tag-sparklines-empty" class="empty-state">Not enough tag data yet.</div>
+        </div>
+      </div>
+
+      <!-- Expandable session log -->
+      <div class="card" id="card-session-drilldown">
+        <div class="card-header">
+          <span class="card-title">Session Log</span>
+          <span class="card-subtitle">Click a row to expand problem-by-problem breakdown</span>
+        </div>
+        <div id="session-drilldown-list">
+          <div class="empty-state">No sessions recorded yet.</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ══════════════════════════ COACH SECTION ════════════════ -->
+    <section id="section-coach" class="section">
+
+      <div class="section-toolbar">
+        <div class="toolbar-left">
+          <span class="section-heading">Coach</span>
+        </div>
+      </div>
+
+      <p class="coach-subtitle">Personalised prescription based on your session history</p>
+
+      <!-- Empty state -->
+      <div class="coach-empty" id="coach-empty">
+        <p>Play at least 3 sessions on ZetaMac to unlock personalised coaching.</p>
+      </div>
+
+      <!-- Weak-point priority list -->
+      <div class="card" id="card-coach-weakpoints" style="display:none">
+        <div class="card-header">
+          <span class="card-title">Top Weak Points</span>
+          <span class="card-badge" id="coach-session-basis"></span>
+        </div>
+        <div id="coach-weakpoints-list"></div>
+      </div>
+
+      <!-- Generated practice plan -->
+      <div class="card" id="card-coach-plan" style="display:none">
+        <div class="card-header">
+          <span class="card-title">Recommended Practice Session</span>
+        </div>
+        <div class="coach-plan-grid" id="coach-plan-grid"></div>
+        <p class="coach-plan-summary" id="coach-plan-summary"></p>
+      </div>
+
+      <!-- Launch button -->
+      <div class="coach-launch-wrap" id="coach-launch-wrap" style="display:none">
+        <div class="coach-launch-row">
+          <button class="btn-primary btn-launch" id="btn-coach-launch" disabled>
+            Launch on ZetaMac →
+          </button>
+          <button class="btn-next-target" id="btn-coach-next" title="Cycle to next weak point">Next Target ›</button>
+        </div>
+        <div class="coach-launch-hint" id="coach-launch-hint">Open arithmetic.zetamac.com first</div>
+      </div>
+
+    </section>
+
+  </div><!-- /#app -->
+
+  <script src="tiers.js"></script>
+  <script src="analytics.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

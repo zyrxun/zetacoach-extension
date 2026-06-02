@@ -1,0 +1,297 @@
+/* ZetaCoach Popup — scoped cyberpunk dark theme
+   Self-contained: duplicates design tokens, no dependency on dashboard.css */
+
+:root {
+  --bg-base:        #080812;
+  --bg-surface:     #0d0d1e;
+  --bg-elevated:    #111128;
+  --border-subtle:  #1a1a38;
+  --border-mid:     #242450;
+  --border-active:  #3a3a7a;
+  --text-primary:   #e0e0f0;
+  --text-secondary: #8888aa;
+  --text-muted:     #44445a;
+  --accent-purple:  #7b2fff;
+  --accent-cyan:    #00d4ff;
+  --zone-dr:        #00ff7f;
+  --zone-proc:      #ffaa00;
+  --zone-fric:      #ff3355;
+  --font-mono:      'JetBrains Mono','Fira Code','Cascadia Code','Consolas',monospace;
+  --glow-purple:    0 0 20px rgba(123,47,255,0.25);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Chrome popups size to body content — fix dimensions to prevent layout jank */
+body {
+  width: 360px;
+  min-height: 200px;
+  max-height: 560px;
+  overflow: hidden;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* ─── Shell ─────────────────────────────────────────────────────────────────── */
+
+#popup-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 560px;
+}
+
+/* ─── Header ────────────────────────────────────────────────────────────────── */
+
+#popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 9px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: #06060f;
+  flex-shrink: 0;
+}
+
+#popup-logo {
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--accent-purple);
+  text-transform: uppercase;
+  text-shadow: var(--glow-purple);
+  user-select: none;
+}
+
+#popup-session-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+/* ─── Loading skeleton ───────────────────────────────────────────────────────── */
+
+#popup-loading {
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skeleton-row {
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #111128 25%, #1a1a38 50%, #111128 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.skeleton-row.wide   { width: 100%; }
+.skeleton-row.mid    { width: 70%; }
+.skeleton-row.narrow { width: 45%; }
+
+@keyframes skeleton-shimmer {
+  0%   { background-position:  200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Empty state ────────────────────────────────────────────────────────────── */
+
+#popup-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 20px;
+  text-align: center;
+}
+
+.popup-empty-icon { font-size: 36px; opacity: 0.12; }
+.popup-empty-text { font-size: 13px; color: var(--text-secondary); }
+.popup-empty-sub  { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+/* ─── Content ────────────────────────────────────────────────────────────────── */
+
+#popup-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ─── Section labels ─────────────────────────────────────────────────────────── */
+
+.popup-tier-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background: rgba(224,146,199,0.06);
+  border: 1px solid rgba(224,146,199,0.18);
+  border-radius: 10px;
+}
+.popup-tier-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.popup-tier-icon svg { width: 100%; height: 100%; }
+.popup-tier-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+}
+.popup-tier-pct {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.popup-section-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  padding: 2px 2px 0;
+}
+
+/* ─── KPI rows ───────────────────────────────────────────────────────────────── */
+
+.popup-kpi-row {
+  display: flex;
+  gap: 6px;
+}
+
+.popup-kpi {
+  flex: 1;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 7px;
+  padding: 8px 10px;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+
+.popup-kpi:hover { border-color: var(--border-active); }
+
+.popup-kpi-val {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+.popup-kpi-lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+/* Sentiment overrides */
+.popup-kpi.kpi-ok   .popup-kpi-val { color: var(--zone-dr);   }
+.popup-kpi.kpi-warn .popup-kpi-val { color: var(--zone-proc); }
+.popup-kpi.kpi-bad  .popup-kpi-val { color: var(--zone-fric); }
+
+/* ─── Weak points ────────────────────────────────────────────────────────────── */
+
+#popup-weak-points {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.popup-weak-row {
+  display: flex;
+  align-items: center;
+  padding: 7px 12px;
+  gap: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+}
+
+.popup-weak-row:last-child { border-bottom: none; }
+
+.popup-weak-rank {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 700;
+  min-width: 14px;
+}
+
+.popup-weak-tag {
+  flex: 1;
+  color: var(--text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popup-weak-lat {
+  font-weight: 700;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.popup-weak-lat.lat-ok   { color: var(--zone-dr);   }
+.popup-weak-lat.lat-warn { color: var(--zone-proc); }
+.popup-weak-lat.lat-bad  { color: var(--zone-fric); }
+
+.popup-weak-empty {
+  padding: 14px 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+/* ─── Footer ─────────────────────────────────────────────────────────────────── */
+
+#popup-footer {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border-subtle);
+  background: #06060f;
+  flex-shrink: 0;
+}
+
+.popup-btn-primary {
+  width: 100%;
+  background: var(--accent-purple);
+  color: #fff;
+  border: none;
+  padding: 9px 0;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 0 12px rgba(123,47,255,0.35);
+}
+
+.popup-btn-primary:hover {
+  background: #9040ff;
+  box-shadow: 0 0 20px rgba(123,47,255,0.55);
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }

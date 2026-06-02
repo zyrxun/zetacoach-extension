@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "ZetaCoach",
+  "version": "1.0.1",
+  "description": "Track every drill on arithmetic.zetamac.com. Identify weak fact families. Climb 12 ranked tiers.",
+
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting"
+  ],
+
+  "host_permissions": [
+    "*://zetamac.com/*",
+    "*://www.zetamac.com/*",
+    "*://arithmetic.zetamac.com/*"
+  ],
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "*://zetamac.com/*",
+        "*://www.zetamac.com/*",
+        "*://arithmetic.zetamac.com/*"
+      ],
+      "js": ["analytics.js", "tiers.js", "content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+
+  "action": {
+    "default_title": "ZetaCoach Quick Stats",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["dashboard.html", "dashboard.js", "dashboard.css", "analytics.js", "tiers.js"],
+      "matches": [
+        "*://zetamac.com/*",
+        "*://www.zetamac.com/*",
+        "*://arithmetic.zetamac.com/*"
+      ]
+    }
+  ]
+}
