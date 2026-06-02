@@ -1645,7 +1645,8 @@ function analyseSpecificTargets(problems) {
 
   for (const p of problems) {
     if (!p.op || p.a == null || p.b == null) continue;
-    const lat = (p.t1 || 0) + (p.t2 || 0);
+    if (p.isPostError) continue;
+    const lat = ZetaAnalytics.cognitiveLatency(p);
     if (lat <= 0) continue;
 
     const op = p.op; // 'add' | 'sub' | 'mul' | 'div'
@@ -1685,7 +1686,8 @@ function analyseSpecificTargets(problems) {
 
   for (const b of Object.values(buckets)) {
     if (b.lats.length < (MIN_COUNT_BY_OP[b.op] || 4)) continue;
-    const avg = Math.round(b.lats.reduce((s, v) => s + v, 0) / b.lats.length);
+    const m = ZetaAnalytics.median(ZetaAnalytics.winsorize(b.lats));
+    const avg = m == null ? 0 : Math.round(m);
     if (avg < 400) continue; // already automatic — not a weak point
 
     let label, ranges, zetaOps;

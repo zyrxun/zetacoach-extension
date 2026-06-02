@@ -12,10 +12,10 @@ Single source of truth for v1.0.1+ work. Check items off in the same commit that
 ## v1.0.1 (post-Chrome-Store-approval)
 
 ### Coach reliability (from Gemini collaboration)
-- [ ] Winsorize per-problem latency at 3 × session_median (read-time, not write-time)
-- [ ] Use t1 (think time) for cognitive weak-point scoring; reserve t2 for any future typing-speed feature
-- [ ] Exclude isPostError===true from latency pools; keep them in error-rate stats
-- [ ] Replace mean/average with rolling medians throughout analytics.js scoring paths
+- [x] Winsorize per-problem latency at 3 × session_median (read-time, not write-time) — v1.0.2
+- [x] Use t1 (think time) for cognitive weak-point scoring; reserve t2 for any future typing-speed feature — v1.0.2
+- [x] Exclude isPostError===true from latency pools; keep them in error-rate stats — v1.0.2
+- [x] Replace mean/average with rolling medians throughout analytics.js scoring paths — v1.0.2
 - [ ] Pool tagging: mul/div by fact family; add/sub by carry/no-carry × digit-span (no answer-digit-count split — t1/t2 separation already isolates typing latency from cognitive load)
 - [ ] ≥8 samples per pool before that pool can be flagged weakest
 - [ ] ≥3 completed sessions before any prescription fires

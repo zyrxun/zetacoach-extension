@@ -182,8 +182,8 @@
     const addProblems  = problems.filter(p => tagIncludes(p, 'Addition'));
     const tensCrossing = problems.filter(p => tagIncludes(p, 'Tens_Crossing'));
     if (addProblems.length >= 3 && tensCrossing.length >= 2) {
-      const baseAvg = avgTotalLatency(addProblems.filter(p => !tagIncludes(p, 'Tens_Crossing')));
-      const tcAvg   = avgTotalLatency(tensCrossing);
+      const baseAvg = cognitiveMedianMs(addProblems.filter(p => !tagIncludes(p, 'Tens_Crossing')));
+      const tcAvg   = cognitiveMedianMs(tensCrossing);
       if (baseAvg > 0 && tcAvg - baseAvg > 300) {
         prescriptions.push({
           severity:   'critical',
@@ -199,8 +199,8 @@
     const postErrorProblems = problems.filter(p => p.isPostError && !p.wasError);
     const baselineProblems  = problems.filter(p => !p.isPostError && !p.wasError);
     if (postErrorProblems.length >= 2 && baselineProblems.length >= 5) {
-      const postAvg = avgTotalLatency(postErrorProblems);
-      const normAvg = avgTotalLatency(baselineProblems);
+      const postAvg = cognitiveMedianMs(postErrorProblems);
+      const normAvg = cognitiveMedianMs(baselineProblems);
       if (postAvg - normAvg > 500) {
         prescriptions.push({
           severity:   'critical',
@@ -242,7 +242,7 @@
     // ── Rule 5: Double-Digit Divisor bloat ──────────────────────────────────
     const dddProblems = problems.filter(p => tagIncludes(p, 'Double_Digit_Divisor'));
     if (dddProblems.length >= 2) {
-      const dddAvg = avgTotalLatency(dddProblems);
+      const dddAvg = cognitiveMedianMs(dddProblems);
       if (dddAvg > 1200) {
         prescriptions.push({
           severity:   'info',
@@ -257,7 +257,7 @@
     // ── Rule 6: Perfect Square recall gaps ──────────────────────────────────
     const sqProblems = problems.filter(p => tagIncludes(p, 'Perfect_Square'));
     if (sqProblems.length >= 2) {
-      const sqAvg = avgTotalLatency(sqProblems);
+      const sqAvg = cognitiveMedianMs(sqProblems);
       if (sqAvg > 600) {
         prescriptions.push({
           severity:   'info',
@@ -272,7 +272,7 @@
     // ── Rule 7: Teen Factor drag ─────────────────────────────────────────────
     const teenProblems = problems.filter(p => tagIncludes(p, 'Teen_Factor'));
     if (teenProblems.length >= 3) {
-      const teenAvg = avgTotalLatency(teenProblems);
+      const teenAvg = cognitiveMedianMs(teenProblems);
       if (teenAvg > 900) {
         prescriptions.push({
           severity:   'info',
@@ -300,18 +300,18 @@
 
     problems.forEach(p => {
       if (!opFilter.includes(p.op) || !p.a || !p.b) return;
+      if (p.isPostError) return;
       const lo  = Math.min(p.a, p.b);
       const hi  = Math.max(p.a, p.b);
       const key = `${lo}×${hi}`;
       if (!cells[key]) cells[key] = { latencies: [], count: 0, a: lo, b: hi };
-      cells[key].latencies.push(p.t1 + p.t2);
+      cells[key].latencies.push(cognitiveLatency(p));
       cells[key].count++;
     });
 
     Object.values(cells).forEach(cell => {
-      cell.avgLatencyMs = Math.round(
-        cell.latencies.reduce((s, v) => s + v, 0) / cell.latencies.length
-      );
+      const m = median(winsorize(cell.latencies));
+      cell.avgLatencyMs = m == null ? 0 : Math.round(m);
       cell.zone = categorizeSpeedZone(cell.avgLatencyMs);
       delete cell.latencies;
     });
@@ -328,17 +328,21 @@
     const tagStats = {};
 
     problems.forEach(p => {
-      const lat = p.t1 + p.t2;
+      if (p.isPostError) return;
+      const lat = cognitiveLatency(p);
       (p.tags || []).forEach(tag => {
-        if (!tagStats[tag]) tagStats[tag] = { sum: 0, count: 0 };
-        tagStats[tag].sum   += lat;
+        if (!tagStats[tag]) tagStats[tag] = { lats: [], count: 0 };
+        tagStats[tag].lats.push(lat);
         tagStats[tag].count += 1;
       });
     });
 
     return Object.entries(tagStats)
       .filter(([, s]) => s.count >= minCount)
-      .map(([tag, s]) => ({ tag, avgLatencyMs: Math.round(s.sum / s.count), count: s.count }))
+      .map(([tag, s]) => {
+        const m = median(winsorize(s.lats));
+        return { tag, avgLatencyMs: m == null ? 0 : Math.round(m), count: s.count };
+      })
       .filter(t => t.avgLatencyMs >= graduateMs)
       .sort((a, b) => b.avgLatencyMs - a.avgLatencyMs)
       .slice(0, limit);
@@ -599,9 +603,45 @@
     return Array.isArray(problem.tags) && problem.tags.includes(tag);
   }
 
-  function avgTotalLatency(problems) {
-    if (!problems.length) return 0;
-    return problems.reduce((s, p) => s + p.t1 + p.t2, 0) / problems.length;
+  // Returns the think-time only — the cognitive component of total latency.
+  // Excludes typing time so that answer-digit-count doesn't leak into the signal.
+  function cognitiveLatency(problem) {
+    return problem.t1 || 0;
+  }
+
+  // Sorted-middle median. Boundary-safe: 0-length → null, 1-length → that value.
+  function median(values) {
+    if (!values || values.length === 0) return null;
+    if (values.length === 1) return values[0];
+    const sorted = values.slice().sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+  }
+
+  // Read-time outlier suppression. Clips each value to multiplier × median.
+  // Robust against single-sample distractions (e.g. a 12-second lapse) without
+  // touching the raw data on disk.
+  function winsorize(values, multiplier = 3) {
+    if (!values || values.length < 2) return values || [];
+    const m = median(values);
+    if (m == null || m <= 0) return values.slice();
+    const cap = multiplier * m;
+    return values.map(v => Math.min(v, cap));
+  }
+
+  // Canonical scoring pipeline for weak-point detection:
+  // (1) drop post-error problems (their slowness reflects panic-recovery, not skill)
+  // (2) extract cognitive latency (t1 only)
+  // (3) winsorize at 3× session median
+  // (4) take median
+  // Returns 0 if the filtered set is empty (preserves the old contract for callers
+  // that compare against 0 or use it in arithmetic).
+  function cognitiveMedianMs(problems) {
+    if (!problems || !problems.length) return 0;
+    const t1s = problems.filter(p => !p.isPostError).map(cognitiveLatency);
+    if (!t1s.length) return 0;
+    const m = median(winsorize(t1s));
+    return m == null ? 0 : m;
   }
 
   function countTags(problems) {
@@ -629,7 +669,11 @@
     generateProblemForOp,
     aggregateProblems,
     buildProblem,
-    isPrime
+    isPrime,
+    median,
+    winsorize,
+    cognitiveLatency,
+    cognitiveMedianMs
   };
 
 })(typeof window !== 'undefined' ? window : globalThis);
