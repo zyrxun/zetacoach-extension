@@ -1680,8 +1680,9 @@ function analyseSpecificTargets(problems) {
   }
 
   // mul/add bucket each problem under BOTH operands (2x inflation); div/sub bucket under one.
-  // Normalize so all ops need the same number of underlying problems.
-  const MIN_COUNT_BY_OP = { mul: 8, add: 8, div: 4, sub: 4 };
+  // Normalize so all ops need the same number of underlying problems. Doubled from
+  // 8/4 in v1.0.3 because Winsorized medians need more data points to settle reliably.
+  const MIN_COUNT_BY_OP = { mul: 16, add: 16, div: 8, sub: 8 };
   const targets = [];
 
   for (const b of Object.values(buckets)) {
@@ -1730,18 +1731,34 @@ function analyseSpecificTargets(problems) {
 }
 
 function buildCoachPlan(sessions) {
-  const problems     = sessions.slice(0, 30).flatMap(s => s.problems || []);
+  // Rolling-window: only consider the last 15 sessions whose config matches the
+  // most-recent non-legacy session. Lets the Coach react to mode switches (e.g.
+  // user toggled from mixed → division-only) without legacy data anchoring it.
+  const rolling = rollingMatchedSessions(sessions, 15);
+
+  const problems     = rolling.flatMap(s => s.problems || []);
   const targets      = analyseSpecificTargets(problems);
-  const weakPoints   = ZetaAnalytics.getWeakPoints(problems, 8, 5, 500);
-  const recentSess   = sessions.slice(0, 10);
+  const weakPoints   = ZetaAnalytics.getWeakPoints(problems, 8, 8, 500);
+  const recentSess   = rolling.slice(0, 10);
   const avgError     = recentSess.reduce((s, x) => s + (x.stats?.errorRate || 0), 0) / Math.max(1, recentSess.length);
   const duration     = avgError > 15 ? 60 : 120;
-  const sessionBasis = Math.min(sessions.length, 30);
+  const sessionBasis = rolling.length;
 
   // Primary target = worst specific operand. Fallback to tag-level if no operand data.
   const primary = targets[0] || null;
 
-  return { targets, weakPoints, primary, duration, sessionBasis };
+  const notReady = rolling.length < 3;
+  return { targets, weakPoints, primary, duration, sessionBasis, notReady, sessionsNeeded: Math.max(0, 3 - rolling.length) };
+}
+
+// Returns the most recent N sessions whose configHash matches the latest
+// non-legacy session. Falls back to most-recent N if no session has a config yet.
+function rollingMatchedSessions(sessions, limit = 15) {
+  if (!sessions || !sessions.length) return [];
+  const withConfig = sessions.find(s => s.config);
+  if (!withConfig) return sessions.slice(0, limit);  // pre-v1.0.3 data only
+  const targetHash = ZetaAnalytics.configHash(withConfig);
+  return sessions.filter(s => ZetaAnalytics.configHash(s) === targetHash).slice(0, limit);
 }
 
 function renderCoach() {
@@ -1750,7 +1767,15 @@ function renderCoach() {
   const planCard = document.getElementById('card-coach-plan');
   const launchW  = document.getElementById('coach-launch-wrap');
 
-  if (State.sessions.length < 3) {
+  const plan      = buildCoachPlan(State.sessions);
+
+  if (plan.notReady) {
+    const need  = plan.sessionsNeeded;
+    const total = State.sessions.length;
+    const switched = total >= 3 && plan.sessionBasis < 3;  // user changed Zetamac config
+    emptyEl.innerHTML = switched
+      ? `<p>Coach is still learning your new Zetamac configuration.<br>Play ${need} more session${need === 1 ? '' : 's'} with these settings.</p>`
+      : `<p>Play ${need} more Zetamac session${need === 1 ? '' : 's'} to unlock personalised coaching.<br><span style="opacity:.6;font-size:13px;">Coach needs at least 3 sessions of data.</span></p>`;
     emptyEl.style.display  = '';
     wpCard.style.display   = 'none';
     planCard.style.display = 'none';
@@ -1763,7 +1788,6 @@ function renderCoach() {
   planCard.style.display = '';
   launchW.style.display  = '';
 
-  const plan      = buildCoachPlan(State.sessions);
   State.coachPlan       = plan;
   State.coachTargetIdx  = 0;
 

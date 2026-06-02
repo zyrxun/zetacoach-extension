@@ -17,11 +17,11 @@ Single source of truth for v1.0.1+ work. Check items off in the same commit that
 - [x] Exclude isPostError===true from latency pools; keep them in error-rate stats — v1.0.2
 - [x] Replace mean/average with rolling medians throughout analytics.js scoring paths — v1.0.2
 - [ ] Pool tagging: mul/div by fact family; add/sub by carry/no-carry × digit-span (no answer-digit-count split — t1/t2 separation already isolates typing latency from cognitive load)
-- [ ] ≥8 samples per pool before that pool can be flagged weakest
-- [ ] ≥3 completed sessions before any prescription fires
-- [ ] "Still learning — N more sessions" banner gated on the above
+- [ ] ≥8 samples per pool before that pool can be flagged weakest *(partial: v1.0.3 tightened MIN_COUNT_BY_OP to {mul:16, add:16, div:8, sub:8} and getWeakPoints minCount to 8; pool-level gate lands in v1.0.4)*
+- [x] ≥3 completed sessions before any prescription fires — v1.0.3
+- [x] "Still learning — N more sessions" banner gated on the above — v1.0.3 (also handles config-switch case)
 - [ ] Dynamic threshold: >3.0s → 15%, 1.5–3.0s → 10%, <1.5s → 5%
-- [ ] Rolling window: last 15 sessions filtered by matching Zetamac config
+- [x] Rolling window: last 15 sessions filtered by matching Zetamac config — v1.0.3
 - [ ] Speed Drill vs. Accuracy Drill — two prescription types with independent gates
 - [ ] Coach state cache key = (latestSessionId, configHash) — invalidates on mode switch
 - [ ] "Based on N samples" confidence badge per prescription

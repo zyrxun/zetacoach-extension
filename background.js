@@ -147,6 +147,7 @@ async function handleSessionComplete(payload, tabId) {
     score:      payload.score || 0,
     durationMs: payload.durationMs || 120000,
     problems:   payload.problems,
+    config:     payload.config || null,
 
     // Pre-compute aggregate stats for fast dashboard rendering
     stats: computeSessionStats(payload.problems)

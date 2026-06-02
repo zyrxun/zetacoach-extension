@@ -636,6 +636,17 @@
   // (4) take median
   // Returns 0 if the filtered set is empty (preserves the old contract for callers
   // that compare against 0 or use it in arithmetic).
+  // Canonical hash of a session's Zetamac configuration. Sessions with the same
+  // hash were played under identical settings and can be compared apples-to-apples.
+  // Returns the sentinel 'legacy' for sessions stored before config capture (v1.0.3+).
+  function configHash(session) {
+    const cfg = session && session.config;
+    if (!cfg) return 'legacy';
+    const ops = Object.entries(cfg.ops || {}).filter(([, v]) => v).map(([k]) => k).sort().join(',');
+    const ranges = Object.entries(cfg.ranges || {}).sort().map(([k, v]) => `${k}=${v}`).join(',');
+    return `${ops}|${ranges}|d=${cfg.duration || '?'}`;
+  }
+
   function cognitiveMedianMs(problems) {
     if (!problems || !problems.length) return 0;
     const t1s = problems.filter(p => !p.isPostError).map(cognitiveLatency);
@@ -673,7 +684,8 @@
     median,
     winsorize,
     cognitiveLatency,
-    cognitiveMedianMs
+    cognitiveMedianMs,
+    configHash
   };
 
 })(typeof window !== 'undefined' ? window : globalThis);

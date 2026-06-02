@@ -22,6 +22,34 @@ let prevTimerVal       = null;
 let panelEl            = null;
 let liveInterval       = null;
 let sessionWatchdog    = null;
+let sessionConfig      = null;
+
+// Read the Zetamac settings form into a plain object. Values persist in the
+// DOM inputs even while the game UI is visible, so this works at session-start
+// and session-end alike. Returns null shapes for any missing fields.
+function captureZetamacConfig() {
+  const v = (sel) => { const el = document.querySelector(sel); return el ? el.value : null; };
+  const c = (sel) => { const el = document.querySelector(sel); return el ? !!el.checked : false; };
+  return {
+    ops: {
+      add: c('input[name="add"]'),
+      sub: c('input[name="sub"]'),
+      mul: c('input[name="mul"]'),
+      div: c('input[name="div"]'),
+    },
+    ranges: {
+      add_left_min:  v('input[name="add_left_min"]'),
+      add_left_max:  v('input[name="add_left_max"]'),
+      add_right_min: v('input[name="add_right_min"]'),
+      add_right_max: v('input[name="add_right_max"]'),
+      mul_left_min:  v('input[name="mul_left_min"]'),
+      mul_left_max:  v('input[name="mul_left_max"]'),
+      mul_right_min: v('input[name="mul_right_min"]'),
+      mul_right_max: v('input[name="mul_right_max"]'),
+    },
+    duration: v('select[name="duration"]')
+  };
+}
 
 // ─── Context liveness ─────────────────────────────────────────────────────────
 // After an extension reload the content script's chrome.runtime context is
@@ -204,6 +232,7 @@ function startSession(initialSeconds) {
   postErrorCount   = 0;
   prevTimerVal     = initialSeconds;
   lastProblemText  = '';
+  sessionConfig    = captureZetamacConfig();
 
   // Capture the problem already showing
   const problemEl = document.querySelector(SEL_PROBLEM);
@@ -258,7 +287,8 @@ function endSession(gameEl) {
     timestamp:  Date.now(),
     score,
     durationMs: Math.round(performance.now() - sessionStartTime),
-    problems:   sessionProblems.slice()
+    problems:   sessionProblems.slice(),
+    config:     sessionConfig || captureZetamacConfig()
   };
 
   safeSend({ type: 'SESSION_COMPLETE', payload }, res => {
