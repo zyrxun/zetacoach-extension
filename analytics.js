@@ -636,6 +636,78 @@
   // (4) take median
   // Returns 0 if the filtered set is empty (preserves the old contract for callers
   // that compare against 0 or use it in arithmetic).
+  // Returns a cognitive pool key for the given problem, or null if the shape isn't
+  // recognized. Pools are designed to bucket problems by the *kind* of mental work
+  // they require, not by literal operand values — so weak-point detection has enough
+  // samples to settle quickly and the recommendation is pedagogically meaningful.
+  //
+  //   mul/div → muldiv_family_N where N = min(a,b) for mul, b (divisor) for div
+  //   add     → addsub_<digit-span>_<carry|nocarry>
+  //   sub     → addsub_<digit-span>_<borrow|noborrow> (folded into the same naming)
+  //
+  // digit-span = 'single-double' if min < 10 and max < 100; 'double-double' if both >= 10
+  function getProblemPool(p) {
+    if (!p || p.a == null || p.b == null) return null;
+    const a = p.a, b = p.b;
+    if (p.op === 'mul') return `muldiv_family_${Math.min(a, b)}`;
+    if (p.op === 'div') return `muldiv_family_${b}`;
+    if (p.op === 'add' || p.op === 'sub') {
+      const lo = Math.min(a, b), hi = Math.max(a, b);
+      const span = (lo < 10 && hi < 100) ? 'single-double' :
+                   (lo >= 10 && hi < 1000) ? 'double-double' : 'mixed';
+      let carry;
+      if (p.op === 'add') {
+        carry = ((a % 10) + (b % 10) >= 10) ? 'carry' : 'nocarry';
+      } else {
+        // Borrow required when the minuend's units digit is less than the subtrahend's.
+        carry = ((a % 10) < (b % 10)) ? 'carry' : 'nocarry';
+      }
+      return `addsub_${span}_${carry}`;
+    }
+    return null;
+  }
+
+  // Human-readable label for a pool key. Used in the Coach UI.
+  function poolLabel(poolKey) {
+    if (!poolKey) return '—';
+    const m = poolKey.match(/^muldiv_family_(\d+)$/);
+    if (m) return `×${m[1]} / ÷${m[1]} fact family`;
+    const a = poolKey.match(/^addsub_(single-double|double-double|mixed)_(carry|nocarry)$/);
+    if (a) {
+      const span = a[1] === 'single-double' ? 'Single + double-digit' :
+                   a[1] === 'double-double' ? 'Double-digit' : 'Mixed digit';
+      const cn   = a[2] === 'carry' ? 'with carry/borrow' : 'no carry/borrow';
+      return `${span} ${cn}`;
+    }
+    return poolKey;
+  }
+
+  // Returns ops + ranges payload for launching a Zetamac drill targeted at this pool.
+  // Carry/no-carry pools can't be filtered by Zetamac, so we ship the closest digit-span
+  // range and accept ~50% on-target hit rate — measurement still works problem-by-problem.
+  function poolToZetamacConfig(poolKey) {
+    const muldiv = poolKey && poolKey.match(/^muldiv_family_(\d+)$/);
+    if (muldiv) {
+      const n = parseInt(muldiv[1], 10);
+      return {
+        ops:    { multiplication: true, division: true },
+        ranges: { mul_left_min: n, mul_left_max: n, mul_right_min: 2, mul_right_max: 25 }
+      };
+    }
+    const addsub = poolKey && poolKey.match(/^addsub_(single-double|double-double|mixed)_/);
+    if (addsub) {
+      const span = addsub[1];
+      let ranges;
+      if (span === 'single-double') {
+        ranges = { add_left_min: 2, add_left_max: 9, add_right_min: 10, add_right_max: 99 };
+      } else {
+        ranges = { add_left_min: 11, add_left_max: 99, add_right_min: 11, add_right_max: 99 };
+      }
+      return { ops: { addition: true, subtraction: true }, ranges };
+    }
+    return null;
+  }
+
   // Canonical hash of a session's Zetamac configuration. Sessions with the same
   // hash were played under identical settings and can be compared apples-to-apples.
   // Returns the sentinel 'legacy' for sessions stored before config capture (v1.0.3+).
@@ -685,7 +757,10 @@
     winsorize,
     cognitiveLatency,
     cognitiveMedianMs,
-    configHash
+    configHash,
+    getProblemPool,
+    poolLabel,
+    poolToZetamacConfig
   };
 
 })(typeof window !== 'undefined' ? window : globalThis);

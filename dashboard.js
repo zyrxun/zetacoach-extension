@@ -1639,95 +1639,94 @@ const TAG_TIPS = {
 // Returns targets like: { label:'× 12', op:'multiplication', avgLatency:980,
 //   count:14, ranges:{mulMin1:12,mulMax1:12,mulMin2:2,mulMax2:25} }
 
-function analyseSpecificTargets(problems) {
-  // Bucket: opKey → fixedVal → [latency, ...]
+// Pool-based weakness analysis (v1.0.4).
+// Buckets problems by cognitive pool (fact-family for mul/div, digit-span × carry-status
+// for add/sub) rather than by literal operand. Emits two parallel target lists —
+// Speed (slow but accurate) and Accuracy (error-prone, latency-agnostic) — gated by
+// a dynamic threshold scaled to the user's overall speed.
+function analysePoolTargets(problems) {
+  // Bucket: poolKey → { lats[], errCount, total }
   const buckets = {};
+  const globalT1s = [];
 
   for (const p of problems) {
     if (!p.op || p.a == null || p.b == null) continue;
-    if (p.isPostError) continue;
-    const lat = ZetaAnalytics.cognitiveLatency(p);
-    if (lat <= 0) continue;
-
-    const op = p.op; // 'add' | 'sub' | 'mul' | 'div'
-
-    if (op === 'mul') {
-      // Both operands are meaningful — bucket each as the "fixed" factor
-      for (const fixed of [p.a, p.b]) {
-        const k = `mul_${fixed}`;
-        if (!buckets[k]) buckets[k] = { op: 'mul', fixed, lats: [] };
-        buckets[k].lats.push(lat);
-      }
-    } else if (op === 'div') {
-      // Divisor is the characteristic operand
-      const fixed = p.b;
-      const k = `div_${fixed}`;
-      if (!buckets[k]) buckets[k] = { op: 'div', fixed, lats: [] };
-      buckets[k].lats.push(lat);
-    } else if (op === 'add') {
-      // Bucket by the tens-digit of the larger addend (captures "adding 10s", "adding 7s" etc.)
-      for (const fixed of [p.a, p.b]) {
-        const k = `add_${fixed}`;
-        if (!buckets[k]) buckets[k] = { op: 'add', fixed, lats: [] };
-        buckets[k].lats.push(lat);
-      }
-    } else if (op === 'sub') {
-      const fixed = p.b; // subtrahend
-      const k = `sub_${fixed}`;
-      if (!buckets[k]) buckets[k] = { op: 'sub', fixed, lats: [] };
-      buckets[k].lats.push(lat);
+    const pool = ZetaAnalytics.getProblemPool(p);
+    if (!pool) continue;
+    if (!buckets[pool]) buckets[pool] = { lats: [], errCount: 0, total: 0 };
+    buckets[pool].total += 1;
+    if (p.wasError) buckets[pool].errCount += 1;
+    // Latency math excludes post-error problems (panic-recovery noise).
+    if (!p.isPostError) {
+      const lat = ZetaAnalytics.cognitiveLatency(p);
+      if (lat > 0) { buckets[pool].lats.push(lat); globalT1s.push(lat); }
     }
   }
 
-  // mul/add bucket each problem under BOTH operands (2x inflation); div/sub bucket under one.
-  // Normalize so all ops need the same number of underlying problems. Doubled from
-  // 8/4 in v1.0.3 because Winsorized medians need more data points to settle reliably.
-  const MIN_COUNT_BY_OP = { mul: 16, add: 16, div: 8, sub: 8 };
-  const targets = [];
+  // Dynamic threshold: scale the "no clear weak point" buffer by user speed.
+  const globalMedian = ZetaAnalytics.median(ZetaAnalytics.winsorize(globalT1s)) || 0;
+  const threshold = globalMedian > 3000 ? 0.15 : globalMedian > 1500 ? 0.10 : 0.05;
+  const speedFloor = globalMedian > 0 ? globalMedian * (1 + threshold) : 400;
 
-  for (const b of Object.values(buckets)) {
-    if (b.lats.length < (MIN_COUNT_BY_OP[b.op] || 4)) continue;
-    const m = ZetaAnalytics.median(ZetaAnalytics.winsorize(b.lats));
-    const avg = m == null ? 0 : Math.round(m);
-    if (avg < 400) continue; // already automatic — not a weak point
+  const POOL_MIN_COUNT = 8;
+  const speed = [];
+  const accuracy = [];
 
-    let label, ranges, zetaOps;
+  for (const [poolKey, b] of Object.entries(buckets)) {
+    if (b.total < POOL_MIN_COUNT) continue;
+    const label = ZetaAnalytics.poolLabel(poolKey);
+    const cfg = ZetaAnalytics.poolToZetamacConfig(poolKey) || { ops: {}, ranges: {} };
+    const errRate = b.total > 0 ? (b.errCount / b.total) : 0;
 
-    if (b.op === 'mul') {
-      label   = `× ${b.fixed} table`;
-      zetaOps = { multiplication: true };
-      // Pin one factor to the weak number; let the other range freely (2–25)
-      ranges  = { mul_left_min: b.fixed, mul_left_max: b.fixed, mul_right_min: 2, mul_right_max: 25 };
-    } else if (b.op === 'div') {
-      label   = `÷ ${b.fixed} table`;
-      zetaOps = { division: true };
-      // ZetaMac has no separate div range inputs — drive it via mul ranges
-      // (ZetaMac generates division problems from the multiplication range)
-      ranges  = { mul_left_min: b.fixed, mul_left_max: b.fixed, mul_right_min: 2, mul_right_max: 25 };
-    } else if (b.op === 'add') {
-      label   = `+ ${b.fixed}s`;
-      zetaOps = { addition: true };
-      ranges  = { add_left_min: b.fixed, add_left_max: b.fixed, add_right_min: 2, add_right_max: 100 };
-    } else {
-      label   = `− ${b.fixed}s`;
-      zetaOps = { subtraction: true };
-      // ZetaMac has no separate sub range — drive via add ranges
-      ranges  = { add_left_min: b.fixed, add_left_max: b.fixed, add_right_min: 2, add_right_max: 100 };
+    // Speed target: median latency above the dynamic floor AND error rate ≤ 10%.
+    if (b.lats.length >= POOL_MIN_COUNT) {
+      const m = ZetaAnalytics.median(ZetaAnalytics.winsorize(b.lats));
+      const avg = m == null ? 0 : Math.round(m);
+      if (avg >= speedFloor && errRate <= 0.10) {
+        speed.push({
+          label, poolKey, avgLatency: avg, count: b.lats.length, errRate,
+          totalSamples: b.total, ranges: cfg.ranges, zetaOps: cfg.ops, kind: 'speed'
+        });
+      }
     }
 
-    targets.push({ label, op: b.op, fixed: b.fixed, avgLatency: avg, count: b.lats.length, ranges, zetaOps });
+    // Accuracy target: error rate ≥ 15%, independent of latency.
+    if (errRate >= 0.15) {
+      accuracy.push({
+        label, poolKey, errRate, errCount: b.errCount, totalSamples: b.total,
+        avgLatency: 0, count: b.total, ranges: cfg.ranges, zetaOps: cfg.ops, kind: 'accuracy'
+      });
+    }
   }
 
-  // Sort by avg latency descending, dedupe same op+fixed
-  const seen = new Set();
-  return targets
-    .sort((a, b) => b.avgLatency - a.avgLatency)
-    .filter(t => {
-      const k = `${t.op}_${t.fixed}`;
-      if (seen.has(k)) return false;
-      seen.add(k); return true;
-    })
-    .slice(0, 8);
+  speed.sort((a, b) => b.avgLatency - a.avgLatency);
+  accuracy.sort((a, b) => b.errRate - a.errRate);
+
+  return {
+    speed: speed.slice(0, 6),
+    accuracy: accuracy.slice(0, 4),
+    globalMedian: Math.round(globalMedian),
+    threshold
+  };
+}
+
+// Backward-compat shim: old code paths called analyseSpecificTargets and expected
+// a flat array of operand-style targets. After the pool refactor, return Speed targets
+// flattened with .op and .fixed reconstructed for the existing renderCoachTargets template.
+function analyseSpecificTargets(problems) {
+  const pools = analysePoolTargets(problems);
+  // Combine speed + accuracy, keeping kind for the renderer
+  const combined = [...pools.speed, ...pools.accuracy.filter(a =>
+    !pools.speed.some(s => s.poolKey === a.poolKey)
+  )];
+  // Reconstruct op + fixed for the legacy template (uses these for the icon)
+  return combined.map(t => {
+    const muldiv = t.poolKey.match(/^muldiv_family_(\d+)$/);
+    if (muldiv) return { ...t, op: 'mul', fixed: parseInt(muldiv[1], 10) };
+    const addsub = t.poolKey.match(/^addsub_/);
+    if (addsub) return { ...t, op: 'add', fixed: null };
+    return { ...t, op: 'add', fixed: null };
+  }).slice(0, 8);
 }
 
 function buildCoachPlan(sessions) {
@@ -1767,7 +1766,18 @@ function renderCoach() {
   const planCard = document.getElementById('card-coach-plan');
   const launchW  = document.getElementById('coach-launch-wrap');
 
-  const plan      = buildCoachPlan(State.sessions);
+  // Cache key: (latestSessionId, configHash). Invalidates automatically on new
+  // session or config change. Skip recompute if nothing relevant has shifted.
+  const latest = State.sessions[0];
+  const cacheKey = latest ? `${latest.id}|${ZetaAnalytics.configHash(latest)}` : 'empty';
+  let plan;
+  if (State.coachPlanCacheKey === cacheKey && State.coachPlan) {
+    plan = State.coachPlan;
+  } else {
+    plan = buildCoachPlan(State.sessions);
+    State.coachPlanCacheKey = cacheKey;
+    console.debug('[ZetaCoach] Coach plan recomputed for cacheKey:', cacheKey);
+  }
 
   if (plan.notReady) {
     const need  = plan.sessionsNeeded;
@@ -1813,27 +1823,29 @@ function renderCoachTargets(targets, weakPoints) {
 
   const opSymbol = { mul: '×', div: '÷', add: '+', sub: '−' };
 
-  // Show specific operand targets if we have them
+  // Pool-based targets — show Speed and Accuracy as a unified, kind-tagged list.
   const rows = targets.slice(0, 6).map((t, i) => {
-    const zone   = ZetaAnalytics.categorizeSpeedZone(t.avgLatency);
-    const latCls = zone === 'Direct_Retrieval' ? 'lat-dr'
+    const isAccuracy = t.kind === 'accuracy';
+    const zone   = ZetaAnalytics.categorizeSpeedZone(t.avgLatency || 0);
+    const latCls = isAccuracy ? 'lat-fric'
+                 : zone === 'Direct_Retrieval' ? 'lat-dr'
                  : zone === 'Procedural_Calculation' ? 'lat-proc' : 'lat-fric';
-    const sym    = opSymbol[t.op] || t.op;
-    const tip    = TAG_TIPS[
-      t.op === 'mul' ? (t.fixed >= 13 && t.fixed <= 19 ? 'Teen_Factor' : t.fixed === 12 ? 'Times_12' : t.fixed === 11 ? 'Times_11' : 'Multiplication')
-      : t.op === 'div' ? (t.fixed >= 10 ? 'Double_Digit_Divisor' : 'Division')
-      : t.op === 'add' ? 'Addition'
-      : 'Subtraction'
-    ] || '';
+    const isDivFam = /^muldiv_family_/.test(t.poolKey || '');
+    const kindBadge = isAccuracy
+      ? `<span style="background:rgba(217,128,69,0.18);color:#e8a36c;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;">ACCURACY</span>`
+      : `<span style="background:rgba(132,196,255,0.18);color:#84c4ff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;">SPEED</span>`;
+    const rightCell = isAccuracy
+      ? `<span class="coach-lat-pill ${latCls}">${Math.round((t.errRate || 0) * 100)}% err</span>`
+      : `<span class="coach-lat-pill ${latCls}">${t.avgLatency}ms</span>`;
     return `
       <div class="coach-weakpoint-row" data-target-idx="${i}" style="cursor:pointer;" title="Click to select this as your drill target">
         <span class="coach-rank">#${i + 1}</span>
         <div>
-          <div class="coach-tag-name">${sym} ${t.fixed} &nbsp;<span style="font-size:10px;opacity:.5">(${sym}${t.fixed} table)</span></div>
-          ${tip ? `<div class="coach-tag-tip">${tip}</div>` : ''}
-          ${t.op === 'div' ? `<div class="coach-tag-tip" style="opacity:.55;font-style:italic;">Zetamac generates division as reverse multiplication — your target ÷${t.fixed} will sometimes appear with ${t.fixed} as the answer. Both flavors drill the same fact family.</div>` : ''}
+          <div class="coach-tag-name">${escHtml(t.label || t.poolKey || '?')}${kindBadge}</div>
+          ${isDivFam ? `<div class="coach-tag-tip" style="opacity:.55;font-style:italic;">Zetamac generates division as reverse multiplication — half the problems will have the target number as the answer rather than the divisor.</div>` : ''}
+          <div class="coach-tag-tip" style="opacity:.45;font-size:11px;">Based on ${t.totalSamples || t.count}&nbsp;samples · last 15 sessions</div>
         </div>
-        <span class="coach-lat-pill ${latCls}">${t.avgLatency}ms</span>
+        ${rightCell}
         <span class="coach-sample-count">${t.count}×</span>
       </div>
     `;

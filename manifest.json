@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ZetaCoach",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Track every drill on arithmetic.zetamac.com. Identify weak fact families. Climb 12 ranked tiers.",
 
   "permissions": [

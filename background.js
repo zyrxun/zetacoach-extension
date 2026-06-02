@@ -74,22 +74,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return true;
 
     case 'GET_SETTINGS':
-      chrome.storage.local.get(STORAGE_KEY_SETTINGS, data => {
-        const settings = Object.assign({}, DEFAULT_SETTINGS, data[STORAGE_KEY_SETTINGS] || {});
-        sendResponse({ ok: true, settings });
-      });
+      (async () => {
+        const data = await chrome.storage.local.get(STORAGE_KEY_SETTINGS);
+        sendResponse({ ok: true, settings: Object.assign({}, DEFAULT_SETTINGS, data[STORAGE_KEY_SETTINGS] || {}) });
+      })();
       return true;
 
     case 'SAVE_SETTINGS':
-      chrome.storage.local.set({ [STORAGE_KEY_SETTINGS]: msg.settings }, () => {
+      (async () => {
+        await chrome.storage.local.set({ [STORAGE_KEY_SETTINGS]: msg.settings });
         sendResponse({ ok: true });
-      });
+      })();
       return true;
 
     case 'CLEAR_HISTORY':
-      chrome.storage.local.remove([STORAGE_KEY_SESSIONS, STORAGE_KEY_TIER], () => {
+      (async () => {
+        await chrome.storage.local.remove([STORAGE_KEY_SESSIONS, STORAGE_KEY_TIER]);
         sendResponse({ ok: true });
-      });
+      })();
       return true;
 
     case 'OPEN_DASHBOARD':
@@ -166,19 +168,15 @@ async function handleSessionComplete(payload, tabId) {
   const allTimeBest = sessions.reduce((best, s) => Math.max(best, s.score || 0), 0);
   const newTier     = getTierForScore(allTimeBest);
 
-  const tierData    = await new Promise(resolve =>
-    chrome.storage.local.get(STORAGE_KEY_TIER, d => resolve(d[STORAGE_KEY_TIER] || null))
-  );
-  const prevTierName = tierData;
+  const tierData     = await chrome.storage.local.get(STORAGE_KEY_TIER);
+  const prevTierName = tierData[STORAGE_KEY_TIER] || null;
   const prevIdx = prevTierName ? TIERS.findIndex(t => t.name === prevTierName) : -1;
   const newIdx  = TIERS.findIndex(t => t.name === newTier.name);
   // Tier-up only counts when we have a known previous tier and it's strictly lower.
   // First-ever session never triggers a tier-up animation.
   const tierUp  = prevIdx >= 0 && newIdx > prevIdx;
 
-  await new Promise(resolve =>
-    chrome.storage.local.set({ [STORAGE_KEY_TIER]: newTier.name }, resolve)
-  );
+  await chrome.storage.local.set({ [STORAGE_KEY_TIER]: newTier.name });
 
   // Broadcast to any open dashboard tabs
   broadcastToExtensionPages({ type: 'SESSION_SAVED', session, tier: newTier, tierUp: tierUp ? { from: prevTierName, to: newTier } : null });
@@ -263,37 +261,26 @@ function computeSessionStats(problems) {
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 
-function loadSessions() {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local.get(STORAGE_KEY_SESSIONS, data => {
-      if (chrome.runtime.lastError) return reject(chrome.runtime.lastError);
-      resolve(data[STORAGE_KEY_SESSIONS] || []);
-    });
-  });
+async function loadSessions() {
+  const data = await chrome.storage.local.get(STORAGE_KEY_SESSIONS);
+  return data[STORAGE_KEY_SESSIONS] || [];
 }
 
-function saveSessions(sessions) {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local.set({ [STORAGE_KEY_SESSIONS]: sessions }, () => {
-      const err = chrome.runtime.lastError;
-      if (err) {
-        // Likely quota exceeded — try trimming the oldest 25% and retry once.
-        // Better to lose old sessions than to lose the brand-new one.
-        const trimmed = sessions.slice(0, Math.max(1, Math.floor(sessions.length * 0.75)));
-        chrome.storage.local.set({ [STORAGE_KEY_SESSIONS]: trimmed }, () => {
-          const err2 = chrome.runtime.lastError;
-          if (err2) {
-            broadcastToExtensionPages({ type: 'STORAGE_ERROR', error: err2.message });
-            return reject(err2);
-          }
-          broadcastToExtensionPages({ type: 'STORAGE_TRIMMED', kept: trimmed.length, dropped: sessions.length - trimmed.length });
-          resolve();
-        });
-        return;
-      }
-      resolve();
-    });
-  });
+async function saveSessions(sessions) {
+  try {
+    await chrome.storage.local.set({ [STORAGE_KEY_SESSIONS]: sessions });
+  } catch (err) {
+    // Likely quota exceeded — trim oldest 25% and retry once.
+    // Better to lose old sessions than to lose the brand-new one.
+    const trimmed = sessions.slice(0, Math.max(1, Math.floor(sessions.length * 0.75)));
+    try {
+      await chrome.storage.local.set({ [STORAGE_KEY_SESSIONS]: trimmed });
+      broadcastToExtensionPages({ type: 'STORAGE_TRIMMED', kept: trimmed.length, dropped: sessions.length - trimmed.length });
+    } catch (err2) {
+      broadcastToExtensionPages({ type: 'STORAGE_ERROR', error: err2.message });
+      throw err2;
+    }
+  }
 }
 
 async function getRecentSessions(limit) {
