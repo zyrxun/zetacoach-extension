@@ -42,7 +42,12 @@ const DEFAULT_SETTINGS = {
   weakPointGraduateMs:   600,    // tag graduates out of weak list once avg drops below this
   defaultDrillDuration:  90,     // seconds
   staminaDuration:       180,
-  heatmapOpsFilter:      ['mul', 'div', 'add', 'sub']
+  heatmapOpsFilter:      ['mul', 'div', 'add', 'sub'],
+
+  // Speed-zone thresholds on cognitive latency (t1, ms). Defaults bumped from the
+  // old 400/1200 to reflect real perceptual + motor floors. Users can override.
+  drZoneMaxMs:           600,
+  procZoneMaxMs:         1500
 };
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────

@@ -457,6 +457,29 @@
         </div>
 
         <div class="settings-group">
+          <div class="settings-group-title">Speed Zones</div>
+          <div class="setting-sub" style="padding:0 0 12px;">
+            Latency boundaries (on cognitive t1) for the heatmap and zone labels. Defaults reflect typical perception + motor floors — raise them if your physical typing/reaction limit is higher; lower them if you're elite.
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              Direct Retrieval cap (ms)
+              <div class="setting-sub">Problems faster than this count as "direct retrieval" (green)</div>
+            </div>
+            <input type="number" id="set-zone-dr" class="setting-input" value="600" min="200" max="1500" />
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              Procedural cap (ms)
+              <div class="setting-sub">Between DR cap and this is "procedural" (yellow); above is "systemic friction" (red)</div>
+            </div>
+            <input type="number" id="set-zone-proc" class="setting-input" value="1500" min="600" max="4000" />
+          </div>
+        </div>
+
+        <div class="settings-group">
           <div class="settings-group-title">Data</div>
 
           <div class="setting-row">

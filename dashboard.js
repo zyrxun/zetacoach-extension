@@ -317,7 +317,10 @@ function renderHeatmap(problems) {
   const canvas    = document.getElementById('heatmap-canvas');
   const emptyEl   = document.getElementById('heatmap-empty');
   const tooltip   = document.getElementById('heatmap-tooltip');
-  const matrix    = ZetaAnalytics.buildFactFamilyMatrix(problems, [op]);
+  const matrix    = ZetaAnalytics.buildFactFamilyMatrix(problems, [op], {
+    drMax:   (State.settings || {}).drZoneMaxMs,
+    procMax: (State.settings || {}).procZoneMaxMs
+  });
 
   const entries = Object.keys(matrix);
   if (!entries.length) {
@@ -549,7 +552,7 @@ function renderTagTable(problems) {
   const rows = Object.entries(tagStats)
     .map(([tag, data]) => {
       const avg   = Math.round(data.latencies.reduce((a,b)=>a+b,0) / data.latencies.length);
-      const zone  = ZetaAnalytics.categorizeSpeedZone(avg);
+      const zone  = zoneOf(avg);
       const trend = olderTagAvg[tag]
         ? (avg < olderTagAvg[tag] - 20 ? 'improving' : avg > olderTagAvg[tag] + 20 ? 'worsening' : 'stable')
         : 'stable';
@@ -908,7 +911,7 @@ function recordDrillProblem(problem, rawAnswer, skipped, correct) {
     skipped,
     isPostError:  false,
     relativeTime: now - (State.drill.durationMs - State.drill.remainingMs),
-    zone:         ZetaAnalytics.categorizeSpeedZone(t1 + t2)
+    zone:         zoneOf(t1 + t2)
   });
 }
 
@@ -1098,6 +1101,16 @@ function bindSettingsControls() {
   });
 }
 
+// Wrapper that forwards a latency through the analytics zone categorizer using
+// the user's configured thresholds (or built-in defaults if unset).
+function zoneOf(latencyMs) {
+  const s = State.settings || {};
+  return ZetaAnalytics.categorizeSpeedZone(latencyMs, {
+    drMax:   s.drZoneMaxMs   || undefined,
+    procMax: s.procZoneMaxMs || undefined
+  });
+}
+
 // ─── Data Export ──────────────────────────────────────────────────────────────
 
 function triggerDownload(filename, mimeType, content) {
@@ -1182,6 +1195,8 @@ function renderSettingsPage() {
   setInputVal('set-wp-frequency',        s.weakPointFrequency    || 0.70);
   setInputVal('set-wp-pool',             s.weakPointWindowSize   || 5);
   setInputVal('set-wp-graduate',         s.weakPointGraduateMs   || 600);
+  setInputVal('set-zone-dr',             s.drZoneMaxMs           || 600);
+  setInputVal('set-zone-proc',           s.procZoneMaxMs         || 1500);
 
   // Storage info
   chrome.storage.local.getBytesInUse(null, bytes => {
@@ -1198,13 +1213,22 @@ function saveSettings() {
     staminaDuration:       intVal('set-stamina-duration'),
     weakPointFrequency:    floatVal('set-wp-frequency'),
     weakPointWindowSize:   intVal('set-wp-pool'),
-    weakPointGraduateMs:   intVal('set-wp-graduate')
+    weakPointGraduateMs:   intVal('set-wp-graduate'),
+    drZoneMaxMs:           intVal('set-zone-dr'),
+    procZoneMaxMs:         intVal('set-zone-proc')
   };
   State.settings = settings;
+  // Zone thresholds feed into the heatmap and history zone labels; bust the Coach
+  // cache so the next render reflects the new boundaries.
+  State.coachPlanCacheKey = null;
   chrome.runtime.sendMessage({ type: 'SAVE_SETTINGS', settings }, () => {
     const indicator = document.getElementById('settings-saved-indicator');
     indicator.style.display = 'inline';
     setTimeout(() => { indicator.style.display = 'none'; }, 2000);
+    // Re-render whichever section is open so the new zones take effect immediately.
+    if (State.activeSection === 'analytics') renderAnalytics();
+    if (State.activeSection === 'history')   renderHistory();
+    if (State.activeSection === 'coach')     renderCoach();
   });
 }
 
@@ -1560,7 +1584,7 @@ function drawSparkline(canvas, vals) {
     const barH = Math.max(3, Math.round(frac * (H - 6)));
     const y    = H - barH - 2;
 
-    const zone = ZetaAnalytics.categorizeSpeedZone(v);
+    const zone = zoneOf(v);
     ctx.fillStyle = zone === 'Direct_Retrieval'      ? '#719c81'
                   : zone === 'Procedural_Calculation' ? '#8a8bcf'
                   :                                     '#c97070';
@@ -1650,7 +1674,7 @@ function buildSessionDetailHTML(session) {
 
   const rows = problems.map(p => {
     const latency  = (p.t1 || 0) + (p.t2 || 0);
-    const zone     = p.zone || ZetaAnalytics.categorizeSpeedZone(latency);
+    const zone     = p.zone || zoneOf(latency);
     const zc       = ZONE_CLASS[zone] || '';
     const errMark  = p.wasError ? '<span class="detail-error-mark">✕</span>' : '';
     const skipMark = p.skipped  ? '<span class="detail-skip-mark">skip</span>' : '';
@@ -1904,7 +1928,7 @@ function renderCoachTargets(targets, weakPoints) {
   // Pool-based targets — show Speed and Accuracy as a unified, kind-tagged list.
   const rows = targets.slice(0, 6).map((t, i) => {
     const isAccuracy = t.kind === 'accuracy';
-    const zone   = ZetaAnalytics.categorizeSpeedZone(t.avgLatency || 0);
+    const zone   = zoneOf(t.avgLatency || 0);
     const latCls = isAccuracy ? 'lat-fric'
                  : zone === 'Direct_Retrieval' ? 'lat-dr'
                  : zone === 'Procedural_Calculation' ? 'lat-proc' : 'lat-fric';
@@ -1986,7 +2010,7 @@ function renderCoachPlanGrid(plan) {
     </div>
   `).join('');
 
-  const zone = ZetaAnalytics.categorizeSpeedZone(t.avgLatency);
+  const zone = zoneOf(t.avgLatency);
   const zoneLabel = zone === 'Direct_Retrieval' ? 'Direct Retrieval'
                   : zone === 'Procedural_Calculation' ? 'Procedural' : 'Systemic Friction';
   document.getElementById('coach-plan-summary').textContent =

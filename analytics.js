@@ -8,15 +8,17 @@
   // ─── Speed Zone Thresholds (ms) ─────────────────────────────────────────────
 
   const ZONES = {
-    DIRECT_RETRIEVAL_MAX:  400,
-    PROCEDURAL_MAX:       1200
+    DIRECT_RETRIEVAL_MAX:  600,
+    PROCEDURAL_MAX:       1500
   };
 
   // ─── Zone Classification ─────────────────────────────────────────────────────
 
-  function categorizeSpeedZone(totalLatencyMs) {
-    if (totalLatencyMs < ZONES.DIRECT_RETRIEVAL_MAX)  return 'Direct_Retrieval';
-    if (totalLatencyMs <= ZONES.PROCEDURAL_MAX)        return 'Procedural_Calculation';
+  function categorizeSpeedZone(totalLatencyMs, thresholds) {
+    const drMax   = thresholds && thresholds.drMax   ? thresholds.drMax   : ZONES.DIRECT_RETRIEVAL_MAX;
+    const procMax = thresholds && thresholds.procMax ? thresholds.procMax : ZONES.PROCEDURAL_MAX;
+    if (totalLatencyMs < drMax)   return 'Direct_Retrieval';
+    if (totalLatencyMs <= procMax) return 'Procedural_Calculation';
     return 'Systemic_Friction';
   }
 
@@ -295,7 +297,7 @@
   // Returns a matrix object keyed by "a×b" with avgLatency and zone per cell.
   // Used by the dashboard to render the multiplication/division heatmap.
 
-  function buildFactFamilyMatrix(problems, opFilter = ['mul', 'div']) {
+  function buildFactFamilyMatrix(problems, opFilter = ['mul', 'div'], thresholds) {
     const cells = {};
 
     problems.forEach(p => {
@@ -312,7 +314,7 @@
     Object.values(cells).forEach(cell => {
       const m = median(winsorize(cell.latencies));
       cell.avgLatencyMs = m == null ? 0 : Math.round(m);
-      cell.zone = categorizeSpeedZone(cell.avgLatencyMs);
+      cell.zone = categorizeSpeedZone(cell.avgLatencyMs, thresholds);
       delete cell.latencies;
     });
 
