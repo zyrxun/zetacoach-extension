@@ -458,6 +458,23 @@
 
         <div class="settings-group">
           <div class="settings-group-title">Data</div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              Export Sessions
+              <div class="setting-sub">Download every session as CSV (one row per session) — opens in Excel, Sheets, pandas, etc.</div>
+            </div>
+            <button id="btn-export-csv" class="btn-ghost">Download CSV</button>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              Export Full Backup
+              <div class="setting-sub">Download everything (sessions + per-problem latencies + tier + settings) as a single JSON file. Best for backup or deep analysis.</div>
+            </div>
+            <button id="btn-export-json" class="btn-ghost">Download JSON</button>
+          </div>
+
           <div class="setting-row">
             <div class="setting-label">
               Session History

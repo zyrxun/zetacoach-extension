@@ -52,5 +52,5 @@ Plan: `~/.claude/plans/also-we-should-probably-composed-fairy.md`
 ## v1.0.2+ backlog
 - [ ] Practice-session daily reminders (notifications permission)
 - [ ] Multi-day practice streak tracking
-- [ ] Export sessions + practice history to CSV
+- [x] Export sessions + practice history to CSV — v1.0.5 (CSV session-level + full JSON backup in Settings tab)
 - [ ] EMA half-life weighting (alternative to rolling window cutoff)

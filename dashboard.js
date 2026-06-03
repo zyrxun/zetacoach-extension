@@ -1074,6 +1074,8 @@ function bindSettingsControls() {
   });
 
   document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
+  document.getElementById('btn-export-csv').addEventListener('click', exportSessionsCsv);
+  document.getElementById('btn-export-json').addEventListener('click', exportFullBackupJson);
   document.getElementById('btn-settings-clear').addEventListener('click', () => {
     document.getElementById('clear-confirm-row').style.display = '';
     document.getElementById('btn-settings-clear').style.display = 'none';
@@ -1093,6 +1095,82 @@ function bindSettingsControls() {
       renderTierCard();
       renderSettingsPage();
     });
+  });
+}
+
+// ─── Data Export ──────────────────────────────────────────────────────────────
+
+function triggerDownload(filename, mimeType, content) {
+  const blob = new Blob([content], { type: mimeType });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function csvEscape(v) {
+  if (v == null) return '';
+  const s = String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function exportSessionsCsv() {
+  const sessions = State.sessions || [];
+  if (!sessions.length) {
+    showStorageNotice('No sessions to export yet — play one first.');
+    return;
+  }
+
+  const cols = [
+    'timestamp_iso','score','duration_sec','total_problems','correct_count',
+    'error_rate_pct','avg_latency_ms','p95_ms','dr_pct','ops_enabled','duration_setting','ranges_json'
+  ];
+  const rows = sessions.map(s => {
+    const st  = s.stats || {};
+    const cfg = s.config || {};
+    const opsList = cfg.ops
+      ? Object.entries(cfg.ops).filter(([, v]) => v).map(([k]) => k).join('+')
+      : '';
+    return [
+      new Date(s.timestamp).toISOString(),
+      s.score || 0,
+      Math.round((s.durationMs || 0) / 1000),
+      st.totalProblems != null ? st.totalProblems : '',
+      st.correctCount != null ? st.correctCount : '',
+      st.errorRate != null ? st.errorRate : '',
+      st.avgLatencyMs != null ? st.avgLatencyMs : '',
+      st.p95Ms != null ? st.p95Ms : '',
+      st.zones && st.totalProblems
+        ? Math.round((st.zones.Direct_Retrieval || 0) / st.totalProblems * 100)
+        : '',
+      opsList,
+      cfg.duration || '',
+      cfg.ranges ? JSON.stringify(cfg.ranges) : ''
+    ].map(csvEscape).join(',');
+  });
+
+  const csv = [cols.join(','), ...rows].join('\n') + '\n';
+  const stamp = new Date().toISOString().slice(0, 10);
+  triggerDownload(`zetacoach-sessions-${stamp}.csv`, 'text/csv;charset=utf-8', csv);
+}
+
+function exportFullBackupJson() {
+  chrome.storage.local.get(null, data => {
+    const payload = {
+      exported_at: new Date().toISOString(),
+      schema_version: 'zetacoach-v1.0.5',
+      ...data
+    };
+    const stamp = new Date().toISOString().slice(0, 10);
+    triggerDownload(
+      `zetacoach-backup-${stamp}.json`,
+      'application/json',
+      JSON.stringify(payload, null, 2)
+    );
   });
 }
 
