@@ -1,240 +1,141 @@
-# The ZetaCoach Field Guide
+# ZetaCoach
 
-A practical walkthrough for getting the most out of ZetaCoach — from your first session to breaking a plateau six months in.
-
-ZetaCoach turns [arithmetic.zetamac.com](https://arithmetic.zetamac.com) from a stopwatch into a coached training tool. It watches every problem you solve, separates *thinking time* from *typing time*, builds a private map of your weakest fact families, and tells you exactly what to drill next. Everything stays on your machine — no accounts, no servers, no data leaves your browser.
-
-This guide is organised the way you'll actually use the extension: install it, play your first session, learn what the dashboard is telling you, then graduate to the workflows that produce real improvement.
+**A Chrome extension that turns arithmetic.zetamac.com from a stopwatch into a coached training tool — 100% local, zero servers, with a diagnostic engine that actually works.**
 
 ---
 
-## Part 1 — Installation and your first session
+## Inspiration
 
-### Install
+Zetamac is the de facto mental-arithmetic benchmark used by quant traders, competitive math kids, and anyone trying to get faster at numbers. It has been online for a decade and has never changed: a 2-minute timer, a problem on screen, your score at the end. That's it.
 
-1. Visit the [ZetaCoach listing on the Chrome Web Store](https://chromewebstore.google.com/search/zetacoach) and click **Add to Chrome**.
-2. Pin the icon to your toolbar (puzzle icon → pin) so you can see your tier badge at a glance.
-3. Open [arithmetic.zetamac.com](https://arithmetic.zetamac.com) in the same tab you'll play in.
+But "your score at the end" doesn't tell you *why* the score is what it is. Was it the ÷7 problems? The carries? Did you fall apart in the last 20 seconds? Players plateau for months because they're optimising blind. They drill what *feels* hard — usually the wrong thing — and improvement stalls.
 
-You'll know it's working when a small side panel appears in the bottom-right corner of the Zetamac page. That panel is where ZetaCoach lives during play.
-
-### Your first session
-
-Configure Zetamac the way you normally would — pick which operations are on, set ranges, pick a duration — and click **Start**. Play normally. ZetaCoach is invisible while you play; it just records.
-
-When the timer hits zero, the panel switches to a quick summary: your score, accuracy, average latency, fatigue delta, and a "Open Dashboard" button. Click it.
-
-**Do this 2 more times before you read the dashboard.** Coach won't have enough data to give you meaningful weak points until you've played at least 3 sessions with the same Zetamac configuration. The dashboard will show a "Still learning — Play N more sessions" banner until then. That's not a bug, it's a deliberate gate — Coach refuses to give you bad advice from too little data.
+We wanted to know what was actually slowing us down, problem by problem. Not vibes, not gut feel — data. So we built one.
 
 ---
 
-## Part 2 — The side panel (while you're playing)
+## What it does
 
-The bottom-right side panel during a Zetamac session shows three things:
+ZetaCoach silently observes every Zetamac session you play and turns it into a personal coaching system:
 
-- **Live counters** — your score, accuracy, and a rolling latency average as you go.
-- **A draggable handle** — you can move the panel anywhere on screen. Position is remembered per-site.
-- **A "Stop game" button** — ends the session cleanly and saves what you've done so far. Useful if you realise you're tired or distracted and want a clean stop rather than a junk session in your history.
+- **Splits every problem into think-time vs. type-time** — so 3-digit answers don't look like cognitive weaknesses when they're actually typing motor latency.
+- **Identifies your specific weak fact families** using a pooled-statistical model that resists outliers, low-sample noise, and recency bias.
+- **Auto-prescribes the right drill** with one click: ZetaCoach injects the optimal Zetamac configuration into the game page and reloads — pinned to the operand or pool you actually struggle with.
+- **Ranks you across 12 tiers** based on your best score so progress is visible and motivating.
+- **Renders a full diagnostic dashboard**: fact-family heatmap, structural-tag breakdown with trend arrows, fatigue curves per session, session history with problem-by-problem expansion, and an in-extension drill arena with adaptive / metronome / stamina / free modes.
 
-The panel auto-clamps to the viewport if you resize your browser or open DevTools, so it never gets stranded off-screen.
-
-**A note on what's measured:** every problem you solve is split into `t1` (think time — from the problem appearing to your first keystroke) and `t2` (type time — first keystroke to submit). This separation is the secret sauce. Typing speed varies based on how many digits an answer has; cognitive speed doesn't. ZetaCoach uses `t1` for weak-point detection so a 3-digit answer doesn't look like a "weakness" just because typing took longer.
-
----
-
-## Part 3 — The dashboard tour
-
-Click the ZetaCoach toolbar icon and select **Open Dashboard**, or click the dashboard button in the side panel.
-
-You'll see five tabs across the top. Here's what each one is for and how to read it.
-
-### Analytics tab
-
-The "what just happened" view. At the top: your big four KPIs.
-
-- **Avg Latency** — your overall median problem time, in milliseconds. Lower is faster.
-- **P95** — the 95th percentile. The "even your slow problems" benchmark.
-- **Error Rate** — percentage of problems you got wrong (caught via prefix-match — typing the wrong digits then correcting still counts).
-- **DR%** — percentage of problems that landed in the Direct Retrieval zone (< 400ms). This is the gold metric. Elite Zetamac players sit at 80–90% DR.
-
-Below the KPIs:
-
-- **Fact-family heatmap** — a grid of multiplication and division facts coloured by your average latency. Green cells are direct retrieval, yellow are procedural calculation, red are systemic friction. Hover over a cell for sample count and exact latency.
-- **Tag breakdown table** — every structural tag your problems are labelled with (Tens_Crossing, Perfect_Square, Hard_Divisor, etc.), with average latency, sample count, and a trend arrow showing whether you're improving, holding, or backsliding.
-
-This tab is the diagnostic. When you want to understand *why* your score is what it is, come here.
-
-### Drills tab
-
-In-extension practice that doesn't touch Zetamac. Four modes:
-
-- **Adaptive Weak-Point** — auto-focuses your 5 slowest tags at 70% frequency. The default and the most useful for general improvement.
-- **Anti-Hesitation Metronome** — forcibly skips problems beyond your threshold. Trains rhythm recovery; teaches your brain to bail and move on when stuck.
-- **Stamina Endurance** — extended fixed-length sprints. For users whose sessions decay in the last 30 seconds.
-- **Free Practice** — pick your own ops and range. Standard drill mode for when you know what you want to work on.
-
-Set the duration, hit Start. The arena renders problems one at a time. Type the answer. Wrong answers flash in red with the correct answer shown briefly. When the timer ends you get a results screen.
-
-**Important:** drills in this tab do not save to your session history. They're ephemeral. The KPIs you see at the end are local to that drill. This is intentional — drill practice shouldn't get conflated with your real Zetamac performance numbers.
-
-### History tab
-
-Every Zetamac session you've ever played, newest first. Each row shows date, score, average latency, error rate, DR%, and a fatigue delta (Δ ms means how much slower your last 15 seconds were than your first 15 seconds — positive = you slowed down).
-
-Click any row to expand a full problem-by-problem breakdown — the exact text, your `t1` and `t2`, error and skip flags, and the structural tags.
-
-This is the audit log. Use it to verify Coach is right, to spot patterns across sessions, or to find that one session you're proud of.
-
-### Coach tab
-
-The headline feature. Coach takes the last 15 sessions matching your current Zetamac configuration, runs them through a statistical pipeline, and tells you exactly what to drill.
-
-The pipeline (so you can trust the recommendations):
-
-1. **Cognitive latency only.** Uses `t1` (think time), not total time. Typing speed isn't the signal.
-2. **Post-error problems excluded.** When you make a mistake the next 1–2 problems are panic-recovery, not real skill. Coach ignores them for latency math but still counts them for error rate.
-3. **Winsorization at 3× session median.** A single 12-second distraction can't poison your stats. The outlier gets clipped at read time; your raw data stays intact.
-4. **Median, not mean.** Means get pulled by tails; medians don't.
-5. **Pool-based bucketing.** Problems are grouped by what's cognitively hard about them, not by literal operand values:
-   - Multiplication and division share fact-family pools (×7 and ÷7 are the same skill)
-   - Addition and subtraction are pooled by digit-span (single+double, double+double) × carry status (carry/borrow vs none)
-6. **Dynamic threshold.** A pool only qualifies as a weak point if it's slower than `(1 + threshold) × your global median`, where threshold scales with your speed — 15% if you're slow (less noise), 5% if you're elite (catches sub-second gaps).
-7. **Speed vs. Accuracy split.** Pools where you're slow but accurate become **Speed** targets. Pools where you make a lot of errors become **Accuracy** targets (latency-agnostic). The two lists are independent.
-
-Each weak-point row shows:
-
-- The pool label (e.g., "×7 / ÷7 fact family" or "Double-digit with carry/borrow")
-- A coloured `SPEED` or `ACCURACY` badge
-- The latency or error rate
-- A confidence line: "Based on N samples · last 15 sessions"
-
-Click a row to select it as your drill target, then hit **Launch Coach Plan** at the bottom. ZetaCoach will inject the right config into Zetamac and reload — you land on the settings screen with the right operations checked and ranges pinned, ready to start.
-
-**A quirk worth knowing:** Zetamac generates division as "multiplication in reverse." If Coach launches you into a `÷7` drill, half the problems will have 7 as the divisor (what you want) and half will have 7 as the answer. Both flavours drill the same fact family, so it's still useful, but expect a 50% on-target hit rate. The Coach UI mentions this inline for division targets.
-
-### Settings tab
-
-The boring but important stuff:
-
-- **Theme** — orchid (default) or a couple of alternatives.
-- **Weak-point focus frequency** — controls how often Adaptive drills serve a weak-tag problem vs. a random one. Default 70%.
-- **Clear History** — wipes all your sessions, tier, and saved settings. Use with care; this is irreversible.
-- **Privacy disclosure** — confirms all data is local.
+Everything happens in your browser. There is no backend. There is no account. We literally cannot see your data even if we wanted to.
 
 ---
 
-## Part 4 — The 12-tier ranking system
+## How we built it
 
-ZetaCoach ranks you across 12 tiers based on your all-time best Zetamac score, defaulting to the standard 2-min addition/subtraction/multiplication/division config.
+### The data pipeline
 
-The tiers run roughly from Bronze (newcomer) up through Silver, Gold, Platinum, Diamond, Master, Grandmaster, and a few elite tiers at the top end. Each tier has a custom SVG icon shown in the popup, the dashboard's tier card, and as an overlay animation when you rank up.
+Every problem captured by the content script is split into two latencies — `t1` (problem appearing to first keystroke) and `t2` (first keystroke to submit). This separation is the single most important design decision in the project. **Cognitive speed is `t1`. Motor speed is `t2`. Anyone using total latency is conflating two completely different signals.**
 
-The toolbar popup shows your current tier and how many points you need to hit the next. Rank-ups are saved to storage so they don't re-trigger every time you open the popup — only an actual *new* tier-up fires the celebration overlay.
+Sessions are stored in `chrome.storage.local` as `{ id, timestamp, score, problems[], stats, config }`. The `config` field records the exact Zetamac settings used — checkbox state and range inputs — so the coaching engine can later compare apples to apples.
 
-If your best score drops because you cleared history or are practicing a different config, your tier resets to whatever your current best deserves. The tier is a snapshot of your peak, not your average.
+### The coaching engine
 
----
+This is where the project earned its name. The naive approach — "average each operand's latency, surface the slowest" — produces garbage. We rebuilt it in three structural passes:
 
-## Part 5 — Playbooks (how to actually use this)
+1. **Read-time Winsorization at 3× session median.** A single 12-second distraction on one problem would otherwise poison that operand's average for weeks. Clipping at read time kills the outlier without touching the raw data on disk.
 
-### Playbook A — "I just installed it"
+2. **Pool-based bucketing instead of literal operand.** Problems are grouped by what's *cognitively hard* about them, not by the specific numbers involved. Multiplication and division share fact-family pools (×7 and ÷7 are the same skill). Addition and subtraction are bucketed by digit-span × carry-status (single+double with carry, double+double no-carry, etc.). This produces both faster sample accumulation and pedagogically meaningful recommendations.
 
-1. Play 3 sessions back-to-back with your normal Zetamac config.
-2. Open the dashboard. Coach should now show recommendations.
-3. Don't act on the first set yet — just read them. Look at the fact-family heatmap on Analytics too. Compare what Coach surfaces to what you "felt" was hard.
-4. Play 5 more sessions over the next few days. By session 8 or so, the recommendations have settled and you can trust them.
+3. **Dynamic threshold scaled to user speed.** A 5% latency gap matters at elite levels and is noise at beginner levels. The "weak point" qualification threshold is 15% if your global median is above 3 seconds, 10% in the middle, 5% below 1.5 seconds.
 
-The temptation is to drill immediately. Resist. Coach gets sharper as your sample size grows; jumping into drills with a noisy initial weak-point list trains the wrong thing.
+We also added:
+- A rolling 15-session window filtered by `configHash` — your old mixed-mode data doesn't poison your new division-only training context.
+- Activation gating: no prescriptions fire below 3 matching sessions, and a per-pool sample floor of 8.
+- Split prescription types: **Speed Drill** (slow but accurate pools) and **Accuracy Drill** (error-prone pools, latency-agnostic), with independent thresholds.
+- Post-error filtering: the 1–2 problems after a wrong answer are panic-recovery, not skill. They get excluded from latency math but stay in error-rate stats.
+- A "Based on N samples · last 15 sessions" confidence badge under every recommendation so users can see the evidence base.
 
-### Playbook B — "I've been plateaued at score N for weeks"
+### The Zetamac injection trick
 
-1. Open the Analytics tab. Look at your **DR%**. If it's below 60%, you have room to grow on automaticity — head to the Coach tab and act on the top **Speed** target.
-2. If DR% is above 70%, look at **P95**. A high P95 means specific problems are killing your sessions even though most are fast. Coach's Speed targets are exactly these "long tail" problems.
-3. Look at fatigue delta in the History tab. If your sessions consistently slow by 200ms+ in the last 15 seconds, run the **Stamina Endurance** drill from the Drills tab 2–3 times a week.
-4. Look at your error rate. If it's above 8–10%, run an **Accuracy Drill** on the top accuracy pool. Slowing down 50ms to halve errors is almost always a net win on score.
+To launch a targeted drill, the dashboard writes the desired config to Zetamac's `sessionStorage` and then navigates to the page root. On load, our content script reads it, programmatically fills the form, and the user lands on a pre-configured "ready to start" screen. This works because Zetamac's setup form is plain HTML — no SPA framework, no API, just `<input>` elements.
 
-The plateau-break sequence is usually: identify the bottleneck (speed vs. accuracy vs. endurance), drill that specifically for a week, retest. Don't chase three things at once.
+The trick required:
+- Synthesising real `input` and `change` events (programmatic value-setters don't trigger React-style listeners on their own — though Zetamac is vanilla HTML, the principle generalises).
+- Reading division's "reverse-multiplication" generation model from Zetamac and exposing the quirk in the UI (a `÷7` drill produces problems with 7 as the divisor half the time and as the answer the other half).
+- A 500ms `setInterval` watchdog that re-queries the DOM in case Zetamac swaps out our observed `#game` node and kills the MutationObserver.
 
-### Playbook C — "I want to memorize the 12× table"
+### The bugs we hunted
 
-1. Drills tab → Free Practice mode.
-2. Set range to 2–25, operations to multiplication only.
-3. After a few sessions on the real Zetamac with mul-only and the 12× table prominent in your settings, Coach will surface "×12 / ÷12 fact family" as a Speed target. Click → Launch Coach Plan.
-4. Zetamac loads with `mul_left = 12, mul_left_max = 12, mul_right = 2-25` — every problem has 12 as one factor. Play 5–10 sessions like this.
-5. Watch the fact-family heatmap turn green for that row over the following week. The cell colour will shift from yellow → green as your latency drops below 400ms.
+A short list of things that broke and how we found them:
 
-### Playbook D — "I want to switch from mixed to division-only training"
+- **Wrong-answer detection didn't catch wrong answers.** The original detector compared input-length-equals-expected-length, which missed every wrong attempt with fewer digits than the correct answer (`100` when the answer is `1000`). We replaced it with prefix-matching: if at any point the input isn't a prefix of the correct answer, the user is on a wrong path. Now catches everything.
 
-1. Change Zetamac settings to division only.
-2. Play 1 session. Coach will re-enter "Still learning your new configuration" mode because your last 15 sessions don't match this config.
-3. Play 2 more sessions with the new config. Coach unlocks at session 3.
-4. From here, Coach will only use sessions matching this exact config — your old mixed-mode data sits in History but doesn't poison the recommendations.
+- **Division was invisible in the Coach view.** The operand-bucketing code put mul/add problems into *two* buckets (both operands) but div/sub into *one*. With a flat sample threshold, div fact families almost never qualified. The eventual fix went further — full pool refactor, no more asymmetry.
 
-This is the same mechanism that protects you if you accidentally play a "messing around" session — as long as the config differs from your serious config, it won't drag your weak-point analysis around.
+- **The drill arena occasionally rendered `"57 − undefined"`.** Root cause was a `do…while` in `generateProblemForTag` that could exit on the first iteration with `b` undefined when the loop's `continue` skipped `b`'s assignment and the while-condition `(b >= a || b <= 0)` evaluated to false against `undefined`. ~10% hit rate. Patched the loop structure to reset `b = undefined` at the top of each iteration and explicitly check the sentinel in both the while and the post-loop fallback.
 
-### Playbook E — "I want pure cognitive numbers, no typing noise"
-
-You already get this — Coach uses `t1` exclusively. But for *your own* curiosity:
-
-1. Analytics tab → look at the tag table for ops you care about.
-2. The latencies shown are total (`t1 + t2`) by design, because that's what you experience as the player. If you want to see `t1` only for a specific session, expand it in History — each problem shows both.
-3. Rough rule of thumb: a 1-second `t1` on a single-digit answer is procedural calculation territory; you should aim to get most of those into direct retrieval (<400ms).
+- **Game-end detection sometimes missed timer-zero.** MutationObserver config was already permissive; root suspect was Zetamac swapping the entire `#game` node. Added a polling watchdog as belt-and-braces.
 
 ---
 
-## Part 6 — Tips and tricks
+## Challenges we ran into
 
-- **Side panel position is per-site.** ZetaCoach remembers where you dragged the panel on `arithmetic.zetamac.com`. Drag it to wherever it doesn't block your peripheral vision when the problem appears.
-- **The dashboard refreshes when a session ends.** If you have the dashboard open in one tab and play in another, the Coach view updates the second your timer hits zero. No need to manually reload.
-- **Storage has a quota.** ZetaCoach keeps the most recent ~500 sessions. When you approach the limit it trims the oldest 25% and shows a small notice. Your best scores and tier are unaffected; you only lose deep history that the Coach window (last 15) doesn't use anyway.
-- **Coach respects your config exactly.** It won't recommend mul drills when you're in division-only mode. The rolling window is filtered by `configHash` — change ranges, change durations, change which ops are checked, and you're effectively starting a new "context" in Coach's eyes.
-- **The console has debug logs.** If you open DevTools on the Zetamac page or the dashboard, you'll see `[ZetaCoach]` lines on drill launches and Coach recomputes. Useful if something looks off — you can verify the config that was actually sent.
-- **A session under ~20 problems isn't enough.** Coach's per-pool gate is 8 samples, and a single 30-second session usually only fills 2–3 pools to the threshold. Aim for 2-minute sessions at minimum.
+**Statistics on small samples.** The whole point of the project is to extract reliable signal from very few data points — sometimes 3 sessions of 50 problems. We over-corrected in early iterations (the gates were too strict; users with 8 sessions saw "Still learning") and under-corrected in others (too noisy with 3 sessions). The final calibration came from collaborating with Gemini on the statistical model — two full rounds of review where Gemini caught real edge cases (post-error contamination spilling into innocent pools, decade-pooling being wrong for Zetamac's actual ranges, the typing-vs-thinking conflation we'd nearly missed) and we pushed back on the ones we disagreed with (suggested write-time outlier clipping was wrong — destroys raw data; we kept Winsorization purely read-time).
 
----
+**Chrome extension architecture.** Manifest V3, three execution contexts (content script, background service worker, dashboard tab), no shared global namespace, async messaging with weird quirks around when `chrome.storage.local.set` actually flushes vs. when callbacks fire. We rebuilt the storage layer twice to get the SESSION_COMPLETE → broadcast ordering right.
 
-## Part 7 — Privacy
+**Minification preserving correctness.** Terser mangles identifiers but not string literals. Our pool keys (`addsub_double-double_carry` etc.) and storage keys had to survive intact through the minified production bundle. We added grep-the-bundle verification to the build script — string literals appear verbatim or the build is wrong.
 
-ZetaCoach is 100% local. To be specific:
-
-- Every problem, every session, every tier change, every setting — stored only in `chrome.storage.local`, scoped to the extension.
-- No network requests are made by the extension. No analytics, no telemetry, no error reporting, no remote config.
-- The source code is public at [github.com/zyrxun/zetacoach-extension](https://github.com/zyrxun/zetacoach-extension) so you can verify all of the above.
-- Uninstall the extension and everything is wiped. There is no cloud copy to delete.
-
-The only network activity that happens "near" ZetaCoach is what your browser does to load `arithmetic.zetamac.com` itself — a normal Zetamac page load, untouched by the extension.
+**Designing for a tool we'd actually use.** This is the underrated challenge. It is easy to ship a "here are some stats" dashboard. It is hard to ship a tool that *changes behaviour* — that makes a player actually drill what they should drill. Most of the UX work was about reducing the gap between "Coach surfaces a weak point" and "user starts a targeted session." One-click launch, exact config injection, the right ranges automatically pinned.
 
 ---
 
-## Part 8 — A philosophy of practice
+## Accomplishments we're proud of
 
-Mental arithmetic improves predictably when you isolate weak points and grind them. ZetaCoach is built around three opinions:
-
-1. **What you feel is wrong.** Players are bad at self-diagnosis. The fact-family you think is your weakness is often just the one you encounter most. Coach uses data, not vibe.
-2. **One bad sample shouldn't anchor you.** A single 12-second distraction in a 100-problem session is noise, not signal. Winsorization prevents one bad day from shaping your training for weeks.
-3. **Recent matters more than total.** A user with 50 sessions from 2 years ago and 5 from this week has the same "current form" as someone with just those 5. The rolling 15-session window biases toward present reality.
-
-If you want to go from green to elite on Zetamac, the path is roughly: play consistently, look at Coach once a week, act on the top Speed target until it graduates out of the list, then move to the next. Don't chase shiny new techniques on YouTube; the gains are almost always in the boring grind on the exact pool Coach is pointing at.
+- **A coaching engine that we'd actually trust.** Every recommendation has a documented statistical pipeline behind it, gated by sample size and recency, with a visible confidence count. No more vibes.
+- **Zero-server architecture for a real-world product.** No accounts, no data exfiltration, no telemetry, no analytics calls. The privacy policy is "we can't see anything because we built it that way." Code is open-source so anyone can verify.
+- **A four-phase versioned release cadence.** v1.0.0 → v1.0.4 in a week, each version independently shippable and bisectable. Foundation math (Winsorize + median + t1-only) shipped first as v1.0.2, then activation gates and the rolling-config window in v1.0.3, then pool tagging + Speed/Accuracy split + dynamic threshold + async refactor in v1.0.4.
+- **The bugs we caught before users did.** Defensive guards in the drill renderer that pre-empted a real-world `undefined` leak, a watchdog poller that protects against arbitrary DOM swaps, a wrong-answer detector that actually detects wrong answers.
 
 ---
 
-## Part 9 — Troubleshooting
+## What we learned
 
-**"Coach says I have no weak points."**
-You probably haven't accumulated enough samples per pool yet, or your performance is genuinely uniform. Play more sessions or check the per-pool sample counts via the dashboard. If you have 30+ sessions and Coach still says nothing, you might genuinely be at a plateau where everything is equally hard — try a Stamina or Metronome drill.
-
-**"Coach surfaces a pool I never play."**
-Make sure your Zetamac config matches what you actually want trained. Coach only analyses sessions matching your most recent config. If you played one mixed session by accident, that doesn't affect a series of mul-only sessions.
-
-**"The dashboard says 'Still learning' even though I've played 10 sessions."**
-You probably changed your Zetamac configuration. Coach treats each unique config as a separate context to avoid lumping unrelated sessions together. Play 3 sessions with the *current* config and the banner clears.
-
-**"My side panel disappeared."**
-You may have dragged it off-screen. Open the dashboard via the toolbar icon, then go to Settings → reset panel position. Or: the panel auto-clamps to viewport on the next page load, so just refresh `arithmetic.zetamac.com`.
-
-**"The 'wrong answer' counter says zero but I definitely got things wrong."**
-You're on a pre-v1.0.2 build. Update via the Chrome Web Store. The wrong-answer detection got a structural fix in v1.0.2 that uses prefix-matching against the correct answer instead of length-based comparison.
+- **Splitting `t1` from `t2` is the single most valuable design decision in arithmetic training tooling.** Everyone using total latency is wrong. We were too, until we weren't.
+- **Pool bucketing produces better recommendations than operand bucketing**, both pedagogically (carry/no-carry is what the brain actually trains) and statistically (samples accumulate fast enough for medians to settle).
+- **Read-time outlier handling beats write-time.** If storage isn't the bottleneck, never throw away raw data. You will want it later.
+- **Per-feature ship phases beat big-bang releases.** Three small versions are easier to reason about and revert than one big one.
 
 ---
 
-ZetaCoach is opinionated software for a specific audience: people who want to get measurably better at mental arithmetic and are willing to trust data over intuition. If you're that person, you'll get more from one focused weekly Coach review than from twenty random Zetamac sessions. Go drill.
+## What's next
+
+Currently in development:
+
+- **A structured Practice Session feature** — a 30-minute timed coaching block where ZetaCoach rotates through your top-3 weak points, launches each into Zetamac, watches your performance, and queues the next one between rounds. Already designed; implementation queued behind v1.0.4 production observation.
+- **In-extension drill persistence** (optional) so the practice arena's data can feed Coach the same way real Zetamac sessions do.
+- **Multi-day streak tracking** and daily practice reminders.
+- **Export sessions to CSV** for users who want to do their own analysis.
+- **EMA-weighted recency** as an alternative to the rolling-window cutoff.
+
+---
+
+## Built with
+
+- **JavaScript (ES2022+)** — vanilla, no framework
+- **Chrome Extension Manifest V3** — service worker background, content scripts, MV3 promise-native storage APIs
+- **HTML + CSS** — custom glassmorphic UI, no UI library
+- **Terser** — production minification with verified string-literal preservation
+- **chrome.storage.local** — only persistence layer; ~500 sessions cap with quota-handling trim
+- **MutationObserver + setInterval watchdog** — game-state detection that survives DOM swaps
+
+**Codebase:** ~3,500 lines across content/dashboard/background/analytics/tiers.
+
+**Architecture:** content script tracks problems and renders side panel; service worker handles storage and tier computation; dashboard renders analytics and Coach; popup shows tier. Pure functions in analytics.js are shared across all three contexts via the `window.ZetaAnalytics` export contract.
+
+**Repo:** [github.com/zyrxun/zetacoach-extension](https://github.com/zyrxun/zetacoach-extension)
+**Listing:** [chromewebstore.google.com/search/zetacoach](https://chromewebstore.google.com/search/zetacoach)
+**Landing:** [zyrxun.github.io/zetacoach](https://zyrxun.github.io/zetacoach)
+**Privacy:** [zyrxun.github.io/zetacoach-privacy](https://zyrxun.github.io/zetacoach-privacy)
+
+---
+
+ZetaCoach is what we wish had existed when we started training on Zetamac. Now it does.
